@@ -10,8 +10,54 @@ const App = {
     this.applyDarkMode();
     this.updateVersionDisplay();
     this.bindEvents();
+    this.populateSourceAccounts();
+
+    if (Store.isFirstRun) {
+      // Show onboarding modal; defer dashboard render until user picks a mode
+      this.showOnboarding();
+    } else {
+      Render.renderDashboard();
+    }
+    this.updateSmsBadge();
+  },
+
+  // ==================== Onboarding (Demo vs Clean) ====================
+  showOnboarding() {
+    const modal = document.getElementById('onboardingModal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  },
+
+  hideOnboarding() {
+    const modal = document.getElementById('onboardingModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  },
+
+  chooseMode(mode) {
+    Store.chooseMode(mode);
+    this.hideOnboarding();
+    this.populateSourceAccounts();
     Render.renderDashboard();
     this.updateSmsBadge();
+    this.toast(mode === 'demo' ? 'حالت دمو فعال شد — نمونه داده‌ها بارگذاری شد' : 'حالت تمیز فعال شد — آماده برای استفاده واقعی', 'success');
+  },
+
+  // Show the mode-switcher from settings
+  openModeSwitcher() {
+    this.toggleSidebar(false);
+    document.getElementById('modeSwitcherModal').classList.remove('hidden');
+  },
+
+  confirmModeSwitch(mode) {
+    if (!confirm(mode === 'demo'
+      ? 'تغییر به حالت دمو: تمام داده‌های فعلی شما با داده‌های نمونه جایگزین می‌شود. ادامه می‌دهید؟'
+      : 'تغییر به حالت تمیز: تمام داده‌های فعلی شما حذف می‌شود. ادامه می‌دهید؟')) return;
+    Store.reset(mode);
+    document.getElementById('modeSwitcherModal').classList.add('hidden');
+    setTimeout(() => location.reload(), 300);
   },
 
   updateVersionDisplay() {
@@ -112,6 +158,9 @@ const App = {
   // ==================== Transaction Form ====================
   openTransactionForm(type) {
     this.toggleFabMenu();
+    // Ensure dropdown reflects current accounts
+    this.populateSourceAccounts();
+
     const subpage = document.getElementById('formSubpage');
     const title = document.getElementById('formTitle');
     const label = document.getElementById('formAccountLabel');
@@ -519,10 +568,8 @@ const App = {
   },
 
   triggerReset() {
-    if (confirm('بازنشانی کامل داده‌ها؟ همه تراکنش‌ها حذف می‌شوند!')) {
-      Store.reset();
-      setTimeout(() => location.reload(), 300);
-    }
+    // Route through the mode switcher so the user can pick demo vs clean
+    this.openModeSwitcher();
   },
 
   // ==================== Source Account Dropdown ====================
@@ -584,9 +631,6 @@ const App = {
       const menu = document.getElementById('exportDropdownMenu');
       if (menu) menu.classList.add('hidden');
     });
-
-    // Populate source account dropdown on form open
-    this.populateSourceAccounts();
 
     // Android back button (Capacitor)
     if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App) {

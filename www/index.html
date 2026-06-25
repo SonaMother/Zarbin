@@ -453,6 +453,10 @@
               <span class="flex items-center gap-3"><i class="fa-solid fa-moon text-slate-400 w-5"></i>حالت تاریک</span>
               <div id="darkModeToggle" class="toggle-switch"></div>
             </button>
+            <button onclick="App.openModeSwitcher()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-arrows-rotate text-slate-400 w-5"></i>تغییر حالت اپلیکیشن</span>
+              <i class="fa-solid fa-chevron-left text-[10px] text-slate-300"></i>
+            </button>
           </div>
         </div>
 
@@ -760,6 +764,99 @@
             <i class="fa-solid fa-trash ml-1"></i> حذف تراکنش
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- ===================== ONBOARDING (FIRST RUN) ===================== -->
+    <div id="onboardingModal" class="absolute inset-0 bg-appDarkTeal z-[60] hidden flex-col items-center justify-center p-6 text-white overflow-y-auto slim-scroll">
+      <!-- Hero art at top -->
+      <div class="w-full max-w-xs flex flex-col items-center text-center animate-fade-in">
+        <div class="relative mb-3 w-full h-32 rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+          <img src="assets/art/onboarding-art.png" alt="Zarbin welcome" class="w-full h-full object-cover" />
+          <div class="absolute inset-0 bg-gradient-to-t from-appDarkTeal via-transparent to-transparent"></div>
+        </div>
+        <!-- Logo -->
+        <div class="relative -mt-6 mb-2">
+          <div class="w-20 h-20 rounded-full bg-gradient-to-br from-amber-300 to-amber-600 flex items-center justify-center shadow-2xl border-4 border-appDarkTeal">
+            <span class="text-5xl font-black text-appDarkTeal">ز</span>
+          </div>
+          <span class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-appDarkTeal border-2 border-amber-400 flex items-center justify-center text-amber-300 text-xs font-black">Z</span>
+        </div>
+        <h1 class="text-2xl font-black mb-1">زرین</h1>
+        <p class="text-amber-300 text-xs font-bold mb-1">Zarbin · حسابدار هوشمند شخصی</p>
+        <p class="text-[11px] text-teal-200/70 leading-relaxed mb-5">به زرین خوش آمدید! لطفاً حالت شروع اپلیکیشن را انتخاب کنید.</p>
+      </div>
+
+      <!-- Mode cards -->
+      <div class="w-full max-w-xs space-y-3">
+        <!-- Demo Mode -->
+        <button onclick="App.chooseMode('demo')" class="w-full bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-right transition-all active:scale-95 group">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-appDarkTeal shrink-0">
+              <i class="fa-solid fa-sparkles text-xl"></i>
+            </div>
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-sm">حالت دمو</span>
+                <span class="text-[9px] bg-amber-400 text-appDarkTeal px-1.5 py-0.5 rounded-full font-black">پیشنهادی</span>
+              </div>
+              <span class="text-[10px] text-teal-200/70 block mt-0.5">داده‌های نمونه برای کاوش ویژگی‌ها</span>
+            </div>
+            <i class="fa-solid fa-chevron-left text-white/40 group-hover:text-white transition"></i>
+          </div>
+        </button>
+
+        <!-- Clean Mode -->
+        <button onclick="App.chooseMode('clean')" class="w-full bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/20 rounded-2xl p-4 text-right transition-all active:scale-95 group">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white shrink-0">
+              <i class="fa-solid fa-leaf text-xl"></i>
+            </div>
+            <div class="flex-1">
+              <span class="font-bold text-sm block">حالت تمیز</span>
+              <span class="text-[10px] text-teal-200/70 block mt-0.5">شروع از صفر برای استفاده واقعی</span>
+            </div>
+            <i class="fa-solid fa-chevron-left text-white/40 group-hover:text-white transition"></i>
+          </div>
+        </button>
+      </div>
+
+      <p class="text-[9px] text-teal-300/40 mt-5 text-center max-w-[260px] leading-relaxed">
+        توجه: انتخاب شما در این دستگاه ذخیره می‌شود. می‌توانید بعداً از منوی تنظیمات → تغییر حالت اپلیکیشن، حالت را عوض کنید.
+      </p>
+
+      <div class="mt-3 text-[9px] text-teal-300/30">
+        نسخه <span class="version-badge inline-block">v1.1.0</span> · Build <span class="build-number">20260627</span>
+      </div>
+    </div>
+
+    <!-- ===================== MODE SWITCHER MODAL ===================== -->
+    <div id="modeSwitcherModal" class="absolute inset-0 bg-slate-950/70 z-[60] hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full p-5 space-y-4 modal-slide-in text-slate-700">
+        <div class="text-center">
+          <div class="w-14 h-14 mx-auto rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xl mb-2">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </div>
+          <h4 class="font-bold text-sm">تغییر حالت اپلیکیشن</h4>
+          <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">با انتخاب هر حالت، تمام داده‌های فعلی جایگزین می‌شود. ابتدا یک پشتیبان بگیرید!</p>
+        </div>
+        <div class="space-y-2">
+          <button onclick="App.confirmModeSwitch('demo')" class="w-full p-3 border border-amber-200 hover:bg-amber-50 rounded-xl text-right flex items-center gap-3 transition">
+            <i class="fa-solid fa-sparkles text-amber-500"></i>
+            <div class="flex-1">
+              <span class="text-xs font-bold block">حالت دمو</span>
+              <span class="text-[10px] text-slate-400">جایگزینی با داده‌های نمونه</span>
+            </div>
+          </button>
+          <button onclick="App.confirmModeSwitch('clean')" class="w-full p-3 border border-teal-200 hover:bg-teal-50 rounded-xl text-right flex items-center gap-3 transition">
+            <i class="fa-solid fa-leaf text-teal-500"></i>
+            <div class="flex-1">
+              <span class="text-xs font-bold block">حالت تمیز</span>
+              <span class="text-[10px] text-slate-400">شروع از صفر (تمام داده حذف می‌شود)</span>
+            </div>
+          </button>
+        </div>
+        <button onclick="App.closeModal('modeSwitcherModal')" class="w-full py-2 text-slate-500 hover:text-slate-700 text-xs font-bold">انصراف</button>
       </div>
     </div>
 

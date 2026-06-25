@@ -3,14 +3,20 @@
    مدیریت حالت و ذخیره‌سازی
    ============================================ */
 
-const APP_VERSION = '1.0.0';
-const APP_BUILD = '20260626';
+const APP_VERSION = '1.1.0';
+const APP_BUILD = '20260627';
 const STORAGE_KEY = 'zarbin_state_v1';
+const FIRST_RUN_KEY = 'zarbin_first_run_done';
 
-// Default demo state - shown on first install
-function getDefaultState() {
+// Demo state - rich sample data shown when user picks "Demo Mode"
+function getDemoState() {
   const today = JalaliDate.today();
   const todayStr = `${String(today[0]).padStart(4, '0')}/${String(today[1]).padStart(2, '0')}/${String(today[2]).padStart(2, '0')}`;
+  // Yesterday in Jalali: convert to Greg, subtract 1 day, convert back
+  const [gY, gM, gD] = JalaliDate.jalaliToGregorian(today[0], today[1], today[2]);
+  const yd = new Date(gY, gM - 1, gD - 1);
+  const [jy2, jm2, jd2] = JalaliDate.gregorianToJalali(yd.getFullYear(), yd.getMonth() + 1, yd.getDate());
+  const yesterday = `${String(jy2).padStart(4, '0')}/${String(jm2).padStart(2, '0')}/${String(jd2).padStart(2, '0')}`;
 
   return {
     version: APP_VERSION,
@@ -42,7 +48,9 @@ function getDefaultState() {
       { id: 1, type: 'expense', category: 'خوراک/کوروش', amount: 755700, account: 'حساب ۴۰۰۱۰۰', date: todayStr, time: '20:08', balance: 573686654, icon: 'fa-utensils', color: 'bg-red-500', note: 'خرید سوپرمارکت' },
       { id: 2, type: 'expense', category: 'اینترنت', amount: 755700, account: 'حساب ۴۰۰۱۰۰', date: todayStr, time: '19:30', balance: 573686654, icon: 'fa-shield-halved', color: 'bg-purple-500', note: 'اشتراک ماهانه' },
       { id: 3, type: 'expense', category: 'کرایه', amount: 1059000, account: 'حساب ۴۰۰۱۰۰', date: todayStr, time: '15:42', balance: 625219854, icon: 'fa-car', color: 'bg-emerald-500', note: 'تاکسی پرند' },
-      { id: 4, type: 'other', category: 'قرض دادن / به امیر', amount: 50021800, account: 'حساب ۴۰۰۱۰۰', date: todayStr, time: '12:15', balance: 575198054, icon: 'fa-hand-holding-dollar', color: 'bg-slate-600', unsettled: true, note: 'قرض موقت' }
+      { id: 4, type: 'other', category: 'قرض دادن / به امیر', amount: 50021800, account: 'حساب ۴۰۰۱۰۰', date: todayStr, time: '12:15', balance: 575198054, icon: 'fa-hand-holding-dollar', color: 'bg-slate-600', unsettled: true, note: 'قرض موقت' },
+      { id: 5, type: 'income', category: 'حقوق', amount: 35000000, account: 'حساب ۴۰۰۱۰۰', date: yesterday, time: '09:00', balance: 575198054, icon: 'fa-briefcase', color: 'bg-emerald-600', note: 'حقوق ماهانه' },
+      { id: 6, type: 'expense', category: 'قبوض', amount: 850000, account: 'حساب ۴۰۰۱۰۰', date: yesterday, time: '14:20', balance: 545198054, icon: 'fa-bolt', color: 'bg-amber-500', note: 'قبض برق' }
     ],
     categories: [
       { id: 'food', name: 'خوراک', icon: 'fa-utensils', color: '#ef4444', type: 'expense' },
@@ -75,8 +83,57 @@ function getDefaultState() {
   };
 }
 
+// Clean state - empty, for real use
+function getCleanState() {
+  const today = JalaliDate.today();
+  const todayStr = `${String(today[0]).padStart(4, '0')}/${String(today[1]).padStart(2, '0')}/${String(today[2]).padStart(2, '0')}`;
+  return {
+    version: APP_VERSION,
+    baseCurrency: 'ریال',
+    activeAccount: 'جیب',
+    activeTab: 'main',
+    fontScale: 100,
+    darkMode: false,
+    biometricLock: false,
+    activeSmsTab: 'bank',
+    currentUser: 'کاربر زرین',
+    selectedDate: todayStr,
+    selectedMonth: { jy: today[0], jm: today[1] },
+    accounts: {
+      'جیب': 0
+    },
+    accountMeta: {
+      'جیب': { bank: '', type: 'cash', iban: '', color: '#0f766e' }
+    },
+    transactions: [],
+    categories: [
+      { id: 'food', name: 'خوراک', icon: 'fa-utensils', color: '#ef4444', type: 'expense' },
+      { id: 'transport', name: 'کرایه', icon: 'fa-car', color: '#10b981', type: 'expense' },
+      { id: 'internet', name: 'اینترنت', icon: 'fa-shield-halved', color: '#a855f7', type: 'expense' },
+      { id: 'utility', name: 'قبوض', icon: 'fa-bolt', color: '#f59e0b', type: 'expense' },
+      { id: 'health', name: 'سلامت', icon: 'fa-heart-pulse', color: '#ec4899', type: 'expense' },
+      { id: 'salary', name: 'حقوق', icon: 'fa-briefcase', color: '#22c55e', type: 'income' },
+      { id: 'loan', name: 'وام', icon: 'fa-people-group', color: '#f97316', type: 'other' },
+      { id: 'lend', name: 'قرض دادن', icon: 'fa-hand-holding-dollar', color: '#64748b', type: 'other' }
+    ],
+    budgets: [],
+    smsInbox: [],
+    settings: {
+      showTodayDate: true,
+      autoParseSms: true,
+      dailyReminder: true,
+      currency: 'ریال',
+      lowBalanceThreshold: 1000000
+    }
+  };
+}
+
+// Default to demo for backward compatibility
+function getDefaultState() { return getDemoState(); }
+
 const Store = {
   state: null,
+  isFirstRun: false,
 
   init() {
     try {
@@ -89,14 +146,29 @@ const Store = {
           if (this.state[key] === undefined) this.state[key] = def[key];
         }
         this.state.version = APP_VERSION;
+        this.isFirstRun = false;
       } else {
-        this.state = getDefaultState();
-        this.save();
+        // First run - mark for onboarding prompt. App.js will call chooseMode().
+        this.isFirstRun = true;
+        // Load minimal placeholder state so the app shell renders without errors
+        this.state = getCleanState();
       }
     } catch (e) {
-      console.warn('Failed to load state, using default', e);
-      this.state = getDefaultState();
+      console.warn('Failed to load state, using clean default', e);
+      this.state = getCleanState();
+      this.isFirstRun = true;
     }
+  },
+
+  chooseMode(mode) {
+    if (mode === 'demo') {
+      this.state = getDemoState();
+    } else {
+      this.state = getCleanState();
+    }
+    this.save();
+    localStorage.setItem(FIRST_RUN_KEY, '1');
+    this.isFirstRun = false;
   },
 
   save() {
@@ -107,15 +179,25 @@ const Store = {
     }
   },
 
-  reset() {
-    this.state = getDefaultState();
+  reset(mode) {
+    if (mode === 'demo') {
+      this.state = getDemoState();
+    } else if (mode === 'clean') {
+      this.state = getCleanState();
+    } else {
+      this.state = getDefaultState();
+    }
     this.save();
+    localStorage.setItem(FIRST_RUN_KEY, '1');
   },
 
   // Transaction operations
   addTransaction(tx) {
-    tx.id = Date.now();
-    tx.date = tx.date || JalaliDate.today().join('/');
+    tx.id = Date.now() + Math.floor(Math.random() * 1000); // ensure uniqueness
+    tx.date = tx.date || (() => {
+      const t = JalaliDate.today();
+      return `${String(t[0]).padStart(4, '0')}/${String(t[1]).padStart(2, '0')}/${String(t[2]).padStart(2, '0')}`;
+    })();
     tx.time = tx.time || new Date().toTimeString().slice(0, 5);
     this.state.transactions.unshift(tx);
     // Update account balance
@@ -126,6 +208,9 @@ const Store = {
         this.state.accounts[tx.account] -= tx.amount;
       } else if (tx.type === 'other') {
         // Loan given - reduce balance
+        this.state.accounts[tx.account] -= tx.amount;
+      } else if (tx.type === 'transfer') {
+        // Transfers move money out of source account; destination handled separately
         this.state.accounts[tx.account] -= tx.amount;
       }
       tx.balance = this.state.accounts[tx.account];
@@ -141,6 +226,7 @@ const Store = {
       if (tx.type === 'income') {
         this.state.accounts[tx.account] -= tx.amount;
       } else {
+        // expense, other, transfer all reduce source balance
         this.state.accounts[tx.account] += tx.amount;
       }
       this.state.transactions = this.state.transactions.filter(t => t.id !== id);

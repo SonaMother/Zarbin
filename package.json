@@ -1,10 +1,11 @@
 {
   "name": "zarbin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Zarbin (زرین) - Persian personal finance accountant app. Cross-platform web app packaged as Android APK via Capacitor.",
   "main": "index.js",
   "scripts": {
-    "dev": "npx http-server www -p 8080 -c-1",
+    "dev": "node scripts/server.js",
+    "serve": "node scripts/server.js",
     "build:web": "echo 'Web app is in /www, no build step needed' && exit 0",
     "cap:sync": "npx cap sync android",
     "cap:add:android": "npx cap add android",

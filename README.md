@@ -3,12 +3,13 @@
 > **حسابدار هوشمند شخصی** — A Persian (Farsi, RTL) personal finance accountant app, packaged as a cross-platform web app and Android APK via Capacitor.
 
 [![Build APK](https://github.com/SonaMother/Zarbin/actions/workflows/build-apk.yml/badge.svg)](https://github.com/SonaMother/Zarbin/actions/workflows/build-apk.yml)
-[![Version](https://img.shields.io/badge/version-1.0.0-14b8a6)](https://github.com/SonaMother/Zarbin/releases)
+[![Version](https://img.shields.io/badge/version-1.1.0-14b8a6)](https://github.com/SonaMother/Zarbin/releases)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web%20%7C%20PWA-0c322c)](https://github.com/SonaMother/Zarbin)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## ✨ Features
 
+- **🎯 Demo vs Clean Mode** — On first launch, users choose between rich sample data (Demo) or empty state (Clean) for real use. Switchable anytime from Settings.
 - **📊 Multi-Account Management** — Track bank accounts, wallets, and cash separately with live balances
 - **💰 Transaction Tracking** — Expenses, income, loans, and transfers with categories and notes
 - **📅 Jalali (Shamsi) Calendar** — Native Persian calendar with day/month picker
@@ -20,17 +21,20 @@
 - **🌙 Dark Mode** — Toggle between light and dark themes
 - **🎚️ Adjustable Font Size** — 80%–130% scaling for accessibility
 - **💱 Currency Switching** — Between Rial (ریال) and Toman (تومان)
+- **🎨 Custom AI Art** — All icons, splash, welcome art, and empty-state illustrations are AI-generated specifically for Zarbin
 - **🔒 Fully Offline** — All data stored locally on device, no internet required
 - **📱 PWA + APK** — Installable on Android via APK or as a PWA from the web
+- **🏷️ Always-Visible Version Badge** — Top header shows current version for traceability
 
 ## 📲 Installation
 
 ### Option A: Install APK on Android
 
 1. Go to [Releases](https://github.com/SonaMother/Zarbin/releases)
-2. Download the latest `app-debug.apk` (or `app-release-unsigned.apk`)
+2. Download the latest `zarbin-v1.1.0.apk`
 3. On your Android phone, enable **"Install unknown apps"** for your browser
 4. Tap the downloaded APK file and confirm installation
+5. On first launch, choose **Demo Mode** to explore or **Clean Mode** for real use
 
 ### Option B: Run as Web App / PWA
 
@@ -39,8 +43,8 @@
 git clone https://github.com/SonaMother/Zarbin.git
 cd Zarbin
 npm install
-npm run dev
-# Open http://localhost:8080 in your browser
+node scripts/server.js   # serves www/ on port 3000
+# Open http://localhost:3000 in your browser
 ```
 
 To install as a PWA: open the web app in Chrome/Edge → menu → **Install app**.
@@ -72,16 +76,11 @@ cd android
 
 ### CI/CD Build (Automatic)
 
-This repo includes a GitHub Actions workflow (`.github/workflows/build-apk.yml`) that automatically builds an APK whenever you push a `v*` tag. The APK is attached to a new GitHub Release.
+A GitHub Actions workflow template is included at `docs/github-actions-workflow.yml.md`. To enable:
+1. Copy the file content into `.github/workflows/build-apk.yml` via the GitHub web UI
+2. Push a `v*` tag — the workflow will build and attach the APK to a new release
 
-```bash
-# Trigger a new release build
-git tag v1.0.1
-git push origin v1.0.1
-# → GitHub Actions builds APK and creates release
-```
-
-You can also trigger a build manually from the **Actions** tab → "Build Android APK" → "Run workflow".
+See [`docs/SETUP-CICD.md`](docs/SETUP-CICD.md) for detailed instructions.
 
 ## 🗂️ Project Structure
 
@@ -103,12 +102,17 @@ Zarbin/
 │   └── assets/
 │       ├── fonts/          # Vazirmatn (offline)
 │       ├── webfonts/       # FontAwesome (offline)
-│       └── icons/          # App icons (PWA)
+│       ├── icons/          # PWA app icons (AI-generated)
+│       └── art/            # Splash, hero, banner, empty-state (AI-generated)
 ├── android/                # Capacitor-generated Android project
 ├── scripts/
-│   └── generate-icons.py   # SVG → PNG icon generator
-├── .github/workflows/
-│   └── build-apk.yml       # CI/CD: builds APK on tag push
+│   ├── server.js           # Local static server (port 3000)
+│   ├── start-server.sh     # Server start helper
+│   └── generate-icons.py   # Legacy SVG icon generator
+├── docs/
+│   ├── SETUP-CICD.md       # GitHub Actions setup guide
+│   └── github-actions-workflow.yml.md
+├── .github/workflows/      # (template, copy from docs to enable)
 ├── capacitor.config.json   # Capacitor config
 ├── package.json
 └── README.md
@@ -121,15 +125,16 @@ Zarbin/
 - **Icons:** Font Awesome 6 (offline-bundled)
 - **Font:** Vazirmatn (Persian, offline-bundled)
 - **Calendar:** Custom Jalali (Shamsi) implementation
+- **Art:** AI-generated icons and illustrations (gold-on-teal theme)
 - **Packaging:** Capacitor 6 → Android APK
 - **Build:** Gradle 8, Android Gradle Plugin 8, JDK 17
-- **CI/CD:** GitHub Actions
+- **CI/CD:** GitHub Actions (template included)
 
 ## 📊 App Data & Privacy
 
 - **All data is stored locally** on your device using `localStorage` — no servers, no telemetry, no cloud sync.
 - Use the **Backup** feature (in Reports tab) to export a JSON backup anytime.
-- Reset the app anytime from Reports → "بازنشانی کامل داده‌ها".
+- Reset the app or switch modes anytime from Settings → "تغییر حالت اپلیکیشن".
 
 ## 🌐 Localization
 
@@ -139,6 +144,7 @@ The app is **100% Persian (Farsi)** with RTL layout. Numbers are displayed in Pe
 
 | Version | Date | Notes |
 |---------|------|-------|
+| v1.1.0 | 2026-06-27 | AI-generated art, Demo/Clean mode prompt, mode switcher in settings, transfer transaction fix, dev server script |
 | v1.0.0 | 2026-06-26 | Initial public release |
 
 The version number is always visible in the top header (next to the "زرین" brand) and in the sidebar footer.
@@ -171,3 +177,4 @@ MIT © SonaMother — see [LICENSE](LICENSE).
   <sub>Your golden accountant · حسابدار طلایی شما</sub><br>
   <sub>© 2026 SonaMother</sub>
 </p>
+
