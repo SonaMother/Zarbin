@@ -1,0 +1,20 @@
+{
+  "name": "زرین · Zarbin",
+  "short_name": "زرین",
+  "description": "حسابدار هوشمند شخصی - Persian personal finance accountant",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c322c",
+  "theme_color": "#0c322c",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    { "src": "assets/icons/icon-96.png", "sizes": "96x96", "type": "image/png" },
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "version": "1.0.0"
+}

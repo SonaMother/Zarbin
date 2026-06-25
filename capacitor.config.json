@@ -1,0 +1,21 @@
+{
+  "appId": "com.sonamother.zarbin",
+  "appName": "زرین · Zarbin",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "url": null
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#0c322c"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#0c322c",
+      "showSpinner": false
+    }
+  }
+}

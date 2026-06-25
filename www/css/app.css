@@ -1,0 +1,284 @@
+/* ============================================
+   Zarbin - Custom Styles
+   زرین - استایل‌های اختصاصی
+   ============================================ */
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('../assets/fonts/Vazirmatn-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('../assets/fonts/Vazirmatn-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('../assets/fonts/Vazirmatn-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('../assets/fonts/Vazirmatn-Black.ttf') format('truetype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --app-dark-teal: #0c322c;
+  --app-medium-teal: #0f3d37;
+  --app-light-teal: #e0f2f1;
+  --app-bg: #f0f5f4;
+  --app-expense: #d32f2f;
+  --app-income: #388e3c;
+  --app-other: #f57c00;
+  --app-accent: #14b8a6;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  font-family: 'Vazirmatn', sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  background: #1e293b;
+  overscroll-behavior: none;
+}
+
+body {
+  touch-action: manipulation;
+}
+
+input, textarea, select {
+  user-select: text;
+  -webkit-user-select: text;
+  font-family: inherit;
+}
+
+/* Hide scrollbars on mobile-style horizontal scrollers */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Slim scrollbar for main scroll areas */
+.slim-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+.slim-scroll::-webkit-scrollbar-thumb { background: rgba(15, 61, 55, 0.3); border-radius: 2px; }
+.slim-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* App container - phone frame on desktop, full-screen on mobile */
+#appContainer {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--app-bg);
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all .3s ease;
+}
+
+@media (min-width: 640px) {
+  #appContainer {
+    height: min(880px, 95vh);
+    border-radius: 1.5rem;
+    border: 1px solid rgba(51,65,85,0.3);
+  }
+  body { padding: 1rem; }
+}
+
+/* App version badge - always visible in header */
+.version-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: rgba(20, 184, 166, 0.18);
+  color: #5eead4;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  white-space: nowrap;
+  font-feature-settings: "tnum";
+}
+
+/* Custom animation classes */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-slide-up { animation: slideUp .25s ease-out; }
+.animate-fade-in { animation: fadeIn .2s ease-out; }
+.animate-scale-in { animation: scaleIn .2s ease-out; }
+
+/* Tab transition */
+.tab-view { animation: fadeIn .2s ease-out; }
+
+/* Custom range slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  background: var(--app-dark-teal);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  background: var(--app-dark-teal);
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid white;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background .25s;
+}
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform .25s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle-switch.active {
+  background: var(--app-dark-teal);
+}
+.toggle-switch.active::after {
+  transform: translateX(-20px);
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 9999;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  animation: slideUp .25s ease-out, fadeIn .3s;
+  max-width: 90%;
+  text-align: center;
+  pointer-events: none;
+}
+.toast.error { background: rgba(127, 29, 29, 0.95); }
+.toast.success { background: rgba(6, 78, 59, 0.95); }
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty state icon glow */
+.empty-state-icon {
+  filter: drop-shadow(0 4px 12px rgba(20, 184, 166, 0.2));
+}
+
+/* Pull to refresh indicator */
+.ptr-indicator {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 10;
+  transition: transform .2s, opacity .2s;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Safe area insets for notched phones */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Number input - hide spinner */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+
+/* Active state for buttons */
+button:active { transform: scale(0.96); }
+button { transition: transform .1s, background-color .2s, color .2s; }
+
+/* Smooth modal transitions */
+.modal-slide-in {
+  animation: slideUp .3s ease-out;
+}
+
+/* Print styles for export preview */
+@media print {
+  body { background: white; }
+  #appContainer { box-shadow: none; max-width: none; height: auto; }
+}

@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0c322c">
+  <meta name="description" content="زرین - حسابدار هوشمند شخصی">
+  <title>زرین · Zarbin</title>
+
+  <!-- Tailwind CSS (offline) -->
+  <script src="js/lib/tailwind.js"></script>
+  <!-- FontAwesome (offline) -->
+  <link rel="stylesheet" href="css/lib/fontawesome.min.css">
+  <!-- App styles -->
+  <link rel="stylesheet" href="css/app.css">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            appDarkTeal: '#0c322c',
+            appMediumTeal: '#0f3d37',
+            appLightTeal: '#e0f2f1',
+            appBg: '#f0f5f4',
+            appExpense: '#d32f2f',
+            appIncome: '#388e3c',
+            appOther: '#f57c00'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-900 min-h-screen flex justify-center items-center p-0 sm:p-4 text-slate-800">
+
+  <!-- ============================================
+       APP CONTAINER (phone frame on desktop)
+       ============================================ -->
+  <div id="appContainer" class="bg-appBg shadow-2xl overflow-hidden sm:rounded-2xl border border-slate-700/30 flex flex-col transition-all duration-300" style="font-size: 100%;">
+
+    <!-- ===================== TOP HEADER ===================== -->
+    <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-3 z-20 shrink-0 shadow-md safe-top">
+      <!-- Sidebar Trigger -->
+      <button onclick="App.toggleSidebar(true)" class="p-2 hover:bg-teal-900/40 rounded-full transition-all" aria-label="منو">
+        <i class="fa-solid fa-bars text-xl"></i>
+      </button>
+
+      <!-- App brand (small) + Version Badge -->
+      <div class="flex items-center gap-2 px-2">
+        <span class="font-bold text-sm tracking-wide">زرین</span>
+        <span class="version-badge">v1.0.0</span>
+      </div>
+
+      <!-- Account Selector + SMS -->
+      <div class="flex items-center gap-1">
+        <div onclick="App.toggleAccountSelector(true)" class="flex items-center gap-2 cursor-pointer py-1 px-2 hover:bg-teal-900/40 rounded-lg transition-all">
+          <i class="fa-solid fa-caret-down text-sm opacity-80 mt-1"></i>
+          <div class="text-left leading-none">
+            <span id="activeAccountName" class="text-[10px] opacity-75 block text-center max-w-[80px] truncate">حساب ۴۰۰۱۰۰</span>
+            <span id="activeAccountBalance" class="text-[11px] font-bold block text-center">۵۷۳,۶۸۶,۶۵۴ ریال</span>
+          </div>
+        </div>
+        <button onclick="App.openSmsInbox()" class="p-2 hover:bg-teal-900/40 rounded-full transition-all relative" aria-label="پیامک‌ها">
+          <i class="fa-solid fa-envelope text-base"></i>
+          <span id="smsBadge" class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white rounded-full border-2 border-appDarkTeal flex items-center justify-center text-[9px] font-bold hidden">۰</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===================== TAB NAVIGATION ===================== -->
+    <nav class="bg-appDarkTeal text-slate-300 flex text-[11px] shrink-0 select-none border-t border-teal-950/40">
+      <button onclick="App.switchTab('main')" id="tab-main" class="flex-1 py-3 text-center border-b-2 border-teal-400 text-white font-bold transition-all">هزینه/درآمد</button>
+      <button onclick="App.switchTab('debts')" id="tab-debts" class="flex-1 py-3 text-center border-b-2 border-transparent hover:text-white transition-all">طلب/بدهی</button>
+      <button onclick="App.switchTab('breakdown')" id="tab-breakdown" class="flex-1 py-3 text-center border-b-2 border-transparent hover:text-white transition-all">به تفکیک</button>
+      <button onclick="App.switchTab('budget')" id="tab-budget" class="flex-1 py-3 text-center border-b-2 border-transparent hover:text-white transition-all">بودجه</button>
+      <button onclick="App.switchTab('goraresh')" id="tab-goraresh" class="flex-1 py-3 text-center border-b-2 border-transparent hover:text-white transition-all">گزارش‌ها</button>
+    </nav>
+
+    <!-- ===================== MAIN VIEWS ===================== -->
+    <main class="flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col slim-scroll">
+
+      <!-- ============ TAB 1: TRANSACTIONS ============ -->
+      <div id="view-main" class="tab-view flex flex-col h-full">
+        <!-- Month & Day Picker Bar -->
+        <div class="bg-white border-b border-slate-200/80 px-3 py-2 shrink-0">
+          <div class="flex items-center justify-between text-teal-900 font-bold mb-2">
+            <button onclick="App.changeMonth(-1)" class="p-1 hover:bg-slate-100 rounded-full" aria-label="ماه قبل">
+              <i class="fa-solid fa-chevron-right"></i>
+            </button>
+            <span id="monthLabel" class="text-sm">خرداد ۱۴۰۵</span>
+            <button onclick="App.changeMonth(1)" class="p-1 hover:bg-slate-100 rounded-full" aria-label="ماه بعد">
+              <i class="fa-solid fa-chevron-left"></i>
+            </button>
+          </div>
+          <div id="dayPickerContainer" class="flex gap-1 justify-between overflow-x-auto no-scrollbar py-1">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="bg-appMediumTeal text-white p-3 shadow-inner text-sm shrink-0 flex flex-col gap-2">
+          <div class="flex justify-between items-center opacity-90 border-b border-teal-800/60 pb-1.5">
+            <span class="font-bold text-xs">مجموع تراکنش‌های روز</span>
+            <span id="sumTotal" class="text-base font-black">۵۲,۵۹۲,۲۰۰</span>
+          </div>
+          <div class="grid grid-cols-4 text-center text-[11px] gap-1">
+            <div class="flex flex-col">
+              <span class="opacity-75 mb-0.5">سایر</span>
+              <span id="sumOther" class="font-bold text-amber-400 text-[11px]">۵۰,۰۲۱,۸۰۰</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="opacity-75 mb-0.5">هزینه</span>
+              <span id="sumExpense" class="font-bold text-red-400 text-[11px]">۲,۵۷۰,۴۰۰</span>
+            </div>
+            <div class="flex flex-col border-l border-teal-800/40">
+              <span class="opacity-75 mb-0.5">درآمد</span>
+              <span id="sumIncome" class="font-bold text-emerald-400 text-[11px]">۰</span>
+            </div>
+            <div class="flex flex-col">
+              <span class="opacity-75 mb-0.5">آیتم</span>
+              <span id="sumItemsCount" class="font-bold text-teal-200 text-sm">۴</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Transactions List -->
+        <div id="transactionsList" class="flex-1 overflow-y-auto p-3 space-y-4 slim-scroll">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- ============ TAB 2: DEBTS ============ -->
+      <div id="view-debts" class="tab-view hidden p-4 space-y-4">
+        <div class="bg-white p-4 rounded-xl shadow-md border border-slate-100">
+          <h3 class="font-bold text-sm text-slate-700 mb-3 text-center">نمودار مانده طلب، بدهی و جریان نقدینگی</h3>
+          <div class="relative w-full h-48">
+            <canvas id="debtsChart"></canvas>
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div class="bg-white p-2.5 rounded-lg border text-center">
+            <span class="text-[10px] block text-slate-400 mb-1">طلب کل</span>
+            <span id="valTotalReceivable" class="text-xs font-bold text-emerald-600">۵۰,۰۲۱,۸۰۰</span>
+          </div>
+          <div class="bg-white p-2.5 rounded-lg border text-center">
+            <span class="text-[10px] block text-slate-400 mb-1">بدهی کل</span>
+            <span id="valTotalDebt" class="text-xs font-bold text-red-600">۰</span>
+          </div>
+          <div class="bg-white p-2.5 rounded-lg border text-center">
+            <span class="text-[10px] block text-slate-400 mb-1 font-bold">مانده کل</span>
+            <span id="valNetBalance" class="text-xs font-bold text-teal-800">۵۰,۰۲۱,۸۰۰</span>
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-100">
+          <h4 class="font-bold text-xs text-slate-700 mb-2">راهنمای طلب و بدهی</h4>
+          <p class="text-[11px] text-slate-500 leading-relaxed">
+            در این بخش، تراکنش‌های تسویه‌نشده (قرض‌ها، مساعده‌ها و مطالبات جاری) به‌صورت خودکار شناسایی و در نمودار نمایش داده می‌شوند.
+            با کلیک روی هر نقطه از نمودار، می‌توانید جزئیات ماه مربوطه را مشاهده کنید.
+          </p>
+        </div>
+      </div>
+
+      <!-- ============ TAB 3: BREAKDOWN ============ -->
+      <div id="view-breakdown" class="tab-view hidden p-4 space-y-4">
+        <div class="bg-white p-4 rounded-xl shadow-md border">
+          <h3 class="font-bold text-sm text-slate-700 mb-3 text-center">سهم هزینه‌ها به تفکیک دسته‌بندی</h3>
+          <div class="space-y-3" id="breakdownContainer">
+            <!-- Progress bars -->
+          </div>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-100">
+          <h4 class="font-bold text-xs text-slate-700 mb-2"><i class="fa-solid fa-lightbulb text-amber-500 ml-1"></i> تحلیل هوشمند</h4>
+          <p class="text-[11px] text-slate-500 leading-relaxed">
+            بیشترین هزینه‌های این ماه را در دسته‌بندی‌های برتر خود مشاهده می‌کنید. برای کاهش هزینه‌ها، تعیین سقف بودجه ماهانه در تب بودجه پیشنهاد می‌شود.
+          </p>
+        </div>
+      </div>
+
+      <!-- ============ TAB 4: BUDGETS ============ -->
+      <div id="view-budget" class="tab-view hidden p-4 flex flex-col items-center justify-center text-center h-full">
+        <!-- Populated by JS -->
+      </div>
+
+      <!-- ============ TAB 5: REPORTS ============ -->
+      <div id="view-goraresh" class="tab-view hidden p-3 space-y-2">
+        <div onclick="App.openUnsettledReport()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><i class="fa-solid fa-clock-rotate-left"></i></span>
+            <div>
+              <span class="text-xs font-bold block">تراکنش‌های تسویه نشده</span>
+              <span class="text-[10px] text-slate-400">تراکنش‌های قرضی، مساعده و مطالبات جاری</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.openAccountManager(true)" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-teal-100 text-teal-600 flex items-center justify-center"><i class="fa-solid fa-wallet"></i></span>
+            <div>
+              <span class="text-xs font-bold block">مانده و گردش حساب (کیف پول / بانک)</span>
+              <span class="text-[10px] text-slate-400">نمایش دارایی‌ها و گردش حساب‌ها</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.openSmsInbox()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-comment-sms"></i></span>
+            <div>
+              <span class="text-xs font-bold block">پیامک‌های بانکی</span>
+              <span class="text-[10px] text-slate-400">مدیریت صندوق ورودی استخراج خودکار</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="Exporter.exportCSV()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fa-regular fa-file-excel"></i></span>
+            <div>
+              <span class="text-xs font-bold block">خروجی CSV (اکسل)</span>
+              <span class="text-[10px] text-slate-400">صدور فایل اکسل از تمام تراکنش‌ها</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="Exporter.exportPDF()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-red-100 text-red-600 flex items-center justify-center"><i class="fa-regular fa-file-pdf"></i></span>
+            <div>
+              <span class="text-xs font-bold block">خروجی PDF (گزارش چاپی)</span>
+              <span class="text-[10px] text-slate-400">گزارش کامل قابل چاپ</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.triggerBackup()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-cloud-arrow-down"></i></span>
+            <div>
+              <span class="text-xs font-bold block">پشتیبان‌گیری (Backup)</span>
+              <span class="text-[10px] text-slate-400">ذخیره کامل داده‌ها به‌صورت فایل JSON</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.triggerRestore()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+            <div>
+              <span class="text-xs font-bold block">بازگردانی پشتیبان</span>
+              <span class="text-[10px] text-slate-400">بارگذاری فایل پشتیبان قبلی</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+        <input type="file" id="restoreFileInput" accept=".json" class="hidden" onchange="App.handleRestoreFile(event)">
+
+        <div onclick="App.triggerReset()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-red-100 hover:bg-red-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-red-100 text-red-600 flex items-center justify-center"><i class="fa-solid fa-trash-can"></i></span>
+            <div>
+              <span class="text-xs font-bold block text-red-700">بازنشانی کامل داده‌ها</span>
+              <span class="text-[10px] text-slate-400">حذف همه تراکنش‌ها و بازگشت به حالت اولیه</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-red-400 text-xs"></i>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===================== FLOATING ACTION BUTTON ===================== -->
+    <div id="fabContainer" class="absolute bottom-5 right-5 z-40 select-none safe-bottom">
+      <button onclick="App.toggleFabMenu()" id="fabButton" class="w-14 h-14 bg-appDarkTeal text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300">
+        <i class="fa-solid fa-plus text-xl transition-all duration-300" id="fabIcon"></i>
+      </button>
+    </div>
+
+    <!-- ===================== FAB OVERLAY ===================== -->
+    <div id="fabOverlay" class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm z-30 hidden transition-all duration-300">
+      <div class="absolute bottom-24 right-6 space-y-3 flex flex-col items-end">
+        <div class="flex items-center gap-3 cursor-pointer group" onclick="App.openTransactionForm('پرداخت')">
+          <span class="bg-white text-xs py-1 px-2.5 rounded-lg shadow-md font-bold group-hover:scale-105 transition-all text-slate-800">پرداخت هزینه</span>
+          <span class="w-11 h-11 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all"><i class="fa-solid fa-arrow-down-long"></i></span>
+        </div>
+        <div class="flex items-center gap-3 cursor-pointer group" onclick="App.openTransactionForm('دریافت')">
+          <span class="bg-white text-xs py-1 px-2.5 rounded-lg shadow-md font-bold group-hover:scale-105 transition-all text-slate-800">دریافت درآمد</span>
+          <span class="w-11 h-11 bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all"><i class="fa-solid fa-arrow-up-long"></i></span>
+        </div>
+        <div class="flex items-center gap-3 cursor-pointer group" onclick="App.openTransactionForm('وام')">
+          <span class="bg-white text-xs py-1 px-2.5 rounded-lg shadow-md font-bold group-hover:scale-105 transition-all text-slate-800">دریافت وام</span>
+          <span class="w-11 h-11 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all"><i class="fa-solid fa-people-group"></i></span>
+        </div>
+        <div class="flex items-center gap-3 cursor-pointer group" onclick="App.openTransactionForm('انتقال')">
+          <span class="bg-white text-xs py-1 px-2.5 rounded-lg shadow-md font-bold group-hover:scale-105 transition-all text-slate-800">انتقال موجودی</span>
+          <span class="w-11 h-11 bg-slate-800 text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-all"><i class="fa-solid fa-right-left"></i></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TRANSACTION FORM ===================== -->
+    <div id="formSubpage" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closeFormSubpage()" class="p-2 hover:bg-teal-950/40 rounded-full" aria-label="بازگشت">
+          <i class="fa-solid fa-arrow-right text-lg"></i>
+        </button>
+        <span id="formTitle" class="font-bold text-sm">ثبت تراکنش جدید</span>
+        <div class="w-8"></div>
+      </header>
+
+      <form id="financialForm" onsubmit="App.handleFormSubmit(event)" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs slim-scroll">
+        <input type="hidden" id="formTypeLabel" value="expense">
+
+        <div class="bg-white p-4 rounded-xl shadow-sm space-y-3.5 border border-slate-100">
+          <div class="flex border-b border-slate-100 pb-2 mb-2 gap-4 font-bold text-teal-800 text-sm">
+            <span class="border-b-2 border-teal-600 pb-1">نقد و بانک</span>
+            <span class="text-slate-300">سند چک</span>
+          </div>
+
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">بابت دسته‌بندی</label>
+            <div class="flex items-center border rounded-lg bg-slate-50">
+              <span class="p-2 text-slate-400 border-l"><i class="fa-solid fa-tags"></i></span>
+              <select id="formCategory" class="w-full p-2 bg-transparent outline-none">
+                <option value="خوراک/سوپرمارکت">خرید سوپرمارکت</option>
+                <option value="خوراک/رستوران">رستوران و کافه</option>
+                <option value="اینترنت">اشتراک اینترنت</option>
+                <option value="کرایه">کرایه و حمل‌ونقل</option>
+                <option value="قبوض">قبوض (آب، برق، گاز)</option>
+                <option value="سلامت">سلامت و درمان</option>
+                <option value="حقوق">دریافت حقوق</option>
+                <option value="قرض دادن">قرض دادن</option>
+                <option value="قرض گرفتن">قرض گرفتن</option>
+                <option value="وام">وام بانکی</option>
+                <option value="سایر">سایر</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label id="formAccountLabel" class="block text-[11px] text-slate-400 mb-1">برداشت از حساب</label>
+            <div class="flex items-center border rounded-lg bg-slate-50">
+              <span class="p-2 text-slate-400 border-l"><i class="fa-solid fa-credit-card"></i></span>
+              <select id="formSourceAccount" class="w-full p-2 bg-transparent outline-none">
+                <!-- populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">مبلغ تراکنش</label>
+            <div class="flex items-center border rounded-lg bg-slate-50">
+              <span id="formAmountLabel" class="p-2 text-slate-400 border-l font-bold text-teal-800">ریال</span>
+              <input id="formAmount" type="number" required placeholder="0" class="w-full p-2 bg-transparent outline-none text-left font-bold" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">کارمزد بانکی (اختیاری)</label>
+            <div class="flex items-center border rounded-lg bg-slate-50">
+              <span class="p-2 text-slate-400 border-l">ریال</span>
+              <input id="formFee" type="number" placeholder="0" class="w-full p-2 bg-transparent outline-none text-left" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">تاریخ ثبت</label>
+              <div onclick="App.openDatePicker()" class="flex items-center justify-between border rounded-lg bg-slate-50 p-2 cursor-pointer">
+                <span id="formDateLabel" class="font-bold">خرداد ۲۷, ۱۴۰۵</span>
+                <i class="fa-solid fa-calendar-day text-slate-400"></i>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">ساعت</label>
+              <div class="flex items-center justify-between border rounded-lg bg-slate-50 p-2">
+                <span id="formTimeLabel">۲۰:۰۸</span>
+                <i class="fa-solid fa-clock text-slate-400"></i>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">یادداشت (اختیاری)</label>
+            <input id="formNote" type="text" placeholder="مثال: خرید ماهانه" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-teal-800 hover:bg-teal-900 text-white rounded-xl font-bold shadow-md active:scale-95 transition-all">
+          <i class="fa-solid fa-check ml-1"></i> ثبت تراکنش
+        </button>
+      </form>
+    </div>
+
+    <!-- ===================== JALALI CALENDAR MODAL ===================== -->
+    <div id="datePickerModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl w-full max-w-xs overflow-hidden shadow-2xl flex flex-col text-xs text-slate-700">
+        <div class="bg-teal-900 p-4 text-center text-white">
+          <span class="block text-[10px] opacity-75">تقویم جلالی زرین</span>
+          <div class="flex items-center justify-center gap-3 mt-1">
+            <button onclick="App.changeCalendarMonth(-1)" class="p-1 hover:bg-teal-800 rounded"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+            <span id="calendarHeader" class="text-base font-bold">خرداد ۱۴۰۵</span>
+            <button onclick="App.changeCalendarMonth(1)" class="p-1 hover:bg-teal-800 rounded"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+          </div>
+        </div>
+        <div class="p-3">
+          <div class="grid grid-cols-7 text-center gap-1 font-bold text-slate-400 mb-2 border-b pb-1">
+            <span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span>ج</span>
+          </div>
+          <div class="grid grid-cols-7 text-center gap-1.5" id="calendarDaysGrid"></div>
+        </div>
+        <div class="bg-slate-50 p-3 flex justify-end gap-2 border-t text-[11px]">
+          <button onclick="App.closeModal('datePickerModal')" class="px-3 py-1.5 text-slate-500 hover:bg-slate-100 rounded">انصراف</button>
+          <button onclick="App.closeModal('datePickerModal')" class="px-4 py-1.5 bg-teal-800 text-white font-bold rounded shadow-sm">تایید</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <div id="sidebarOverlay" onclick="App.toggleSidebar(false)" class="absolute inset-0 bg-slate-950/50 backdrop-blur-xs z-50 hidden transition-all"></div>
+    <div id="sidebarMenu" class="absolute top-0 bottom-0 right-0 w-80 bg-white z-50 translate-x-full transition-transform duration-300 shadow-2xl flex flex-col text-slate-700 safe-top">
+      <div class="bg-appDarkTeal text-white p-5 flex items-center gap-4">
+        <span class="w-12 h-12 rounded-full bg-teal-800 flex items-center justify-center text-xl shadow-inner border border-teal-600/30"><i class="fa-solid fa-user"></i></span>
+        <div>
+          <h4 class="font-bold text-sm">کاربر زرین</h4>
+          <span class="text-[10px] text-teal-300">حسابدار هوشمند شخصی</span>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs slim-scroll">
+        <div>
+          <span class="text-[10px] font-black tracking-widest text-slate-400 uppercase">مدیریت سیستم</span>
+          <div class="mt-2 space-y-1">
+            <button onclick="App.openFontSettings()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-font text-slate-400 w-5"></i>تغییر اندازه فونت</span>
+              <i class="fa-solid fa-chevron-left text-[10px] text-slate-300"></i>
+            </button>
+            <button onclick="App.openCurrencySettings()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-circle-dollar-to-slot text-slate-400 w-5"></i>واحد پولی اپلیکیشن</span>
+              <i class="fa-solid fa-chevron-left text-[10px] text-slate-300"></i>
+            </button>
+            <button onclick="App.openToolbarSettings()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-toggle-on text-slate-400 w-5"></i>تنظیمات نوار ابزار</span>
+              <i class="fa-solid fa-chevron-left text-[10px] text-slate-300"></i>
+            </button>
+            <button onclick="App.toggleDarkMode()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-moon text-slate-400 w-5"></i>حالت تاریک</span>
+              <div id="darkModeToggle" class="toggle-switch"></div>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[10px] font-black tracking-widest text-slate-400 uppercase">معرفی و ارتباطات</span>
+          <div class="mt-2 space-y-1">
+            <button onclick="App.openAboutDialog()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-circle-info text-slate-400 w-5"></i>درباره نرم‌افزار زرین</span>
+              <i class="fa-solid fa-chevron-left text-[10px] text-slate-300"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Build info -->
+        <div class="bg-slate-50 rounded-lg p-3 text-center text-[10px] text-slate-400">
+          <div class="font-bold text-slate-500">زرین · Zarbin</div>
+          <div class="mt-1">نسخه <span class="version-badge inline-block">v1.0.0</span></div>
+          <div class="build-number mt-1">Build 20260626</div>
+          <div class="mt-2 text-[9px]">© ۲۰۲۶ SonaMother · GitHub</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== SMS INBOX ===================== -->
+    <div id="smsInboxModal" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closeSmsInbox()" class="p-2 hover:bg-teal-950/40 rounded-full" aria-label="بازگشت">
+          <i class="fa-solid fa-arrow-right text-lg"></i>
+        </button>
+        <span class="font-bold text-sm">پیامک‌های بانکی دریافتی</span>
+        <div class="w-8"></div>
+      </header>
+      <div class="bg-white border-b border-slate-200 flex text-xs font-bold text-slate-600 shrink-0">
+        <button onclick="App.switchSmsTab('bank')" id="smsTab-bank" class="flex-1 py-3 text-center border-b-2 border-teal-700 text-teal-700 font-bold">بانکی</button>
+        <button onclick="App.switchSmsTab('system')" id="smsTab-system" class="flex-1 py-3 text-center border-b-2 border-transparent">سیستمی</button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4 space-y-3 slim-scroll" id="smsContainer"></div>
+    </div>
+
+    <!-- ===================== ACCOUNT SELECTOR ===================== -->
+    <div id="accountSelectorModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-end">
+      <div class="bg-white w-full rounded-t-2xl max-h-[80%] overflow-y-auto p-4 flex flex-col transition-all duration-300 modal-slide-in safe-bottom">
+        <div class="flex justify-between items-center border-b pb-3 mb-4 text-sm font-bold">
+          <span>تغییر حساب فعال</span>
+          <button onclick="App.toggleAccountSelector(false)" class="text-slate-400" aria-label="بستن">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <div class="space-y-2.5" id="accountSelectionList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== FONT SETTINGS ===================== -->
+    <div id="fontSettingsModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl max-w-sm w-full p-4 space-y-4 modal-slide-in">
+        <h4 class="font-bold text-sm text-center border-b pb-2">تنظیم اندازه نمایش برنامه</h4>
+        <input type="range" id="fontRangeInput" min="80" max="130" value="100" class="w-full accent-teal-800" oninput="App.applyFontScale(this.value)">
+        <div class="text-center text-xs text-slate-500 font-bold mb-3">میزان بزرگنمایی: <span id="fontScaleLabel">۱۰۰٪</span></div>
+        <div class="bg-slate-50 p-3.5 rounded-xl border border-dashed text-xs space-y-2">
+          <span class="text-[9px] font-bold text-slate-400 block uppercase">پیش‌نمایش زنده تغییرات</span>
+          <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="w-8 h-8 rounded-full bg-teal-800 text-white flex items-center justify-center text-xs shadow"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+              <div>
+                <span class="text-xs font-bold block text-slate-800">قرض دادن / به علی</span>
+                <span class="text-[9px] text-slate-400 block">از ملت مانده (۷۵۹,۲۵۰)</span>
+              </div>
+            </div>
+            <span class="text-xs font-black text-amber-600 block">۵۰,۰۰۰ ریال</span>
+          </div>
+        </div>
+        <button onclick="App.closeModal('fontSettingsModal')" class="w-full py-2 bg-appDarkTeal text-white rounded-lg text-xs font-bold shadow-md">تایید و بازگشت</button>
+      </div>
+    </div>
+
+    <!-- ===================== CURRENCY MODAL ===================== -->
+    <div id="currencyModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl max-w-xs w-full p-4 space-y-3 text-xs modal-slide-in">
+        <h4 class="font-bold text-sm text-center text-slate-700">تغییر واحد پول پایه</h4>
+        <p class="text-[10px] text-slate-400 mb-2 leading-relaxed">تعیین واحد پول محاسبه شده در تمامی تراکنش‌ها و نمودارهای هوشمند زرین.</p>
+        <button onclick="App.setBaseCurrency('ریال')" class="w-full py-2.5 border rounded-lg text-slate-700 font-bold hover:bg-slate-50 flex justify-between px-3 items-center" id="btnCurrencyRial">
+          <span>ریال (پیش‌فرض)</span> <i class="fa-solid fa-check text-teal-800" id="checkRial"></i>
+        </button>
+        <button onclick="App.setBaseCurrency('تومان')" class="w-full py-2.5 border rounded-lg text-slate-700 font-bold hover:bg-slate-50 flex justify-between px-3 items-center" id="btnCurrencyToman">
+          <span>تومان (تقسیم بر ۱۰)</span> <i class="fa-solid fa-check text-teal-800 hidden" id="checkToman"></i>
+        </button>
+        <button onclick="App.closeModal('currencyModal')" class="w-full py-2 bg-appDarkTeal text-white rounded-lg text-xs font-bold shadow-md mt-2">تایید و ذخیره</button>
+      </div>
+    </div>
+
+    <!-- ===================== UNSETTLED TRANSACTIONS ===================== -->
+    <div id="unsettledModal" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closeUnsettledReport()" class="p-2 hover:bg-teal-950/40 rounded-full" aria-label="بازگشت">
+          <i class="fa-solid fa-arrow-right text-lg"></i>
+        </button>
+        <span class="font-bold text-sm">مطالبات تسویه نشده</span>
+        <div class="relative shrink-0">
+          <button onclick="App.toggleExportMenu(event)" class="p-2 hover:bg-teal-950/40 rounded-full" aria-label="خروجی">
+            <i class="fa-solid fa-ellipsis-vertical text-lg"></i>
+          </button>
+          <div id="exportDropdownMenu" class="absolute left-0 mt-1 w-44 bg-white rounded-lg shadow-xl border hidden text-xs text-slate-700 z-50">
+            <button onclick="App.triggerDocumentExport('PDF')" class="w-full text-right p-3 hover:bg-slate-50 flex justify-between items-center">
+              <span>خروجی PDF</span> <i class="fa-regular fa-file-pdf text-red-500"></i>
+            </button>
+            <button onclick="App.triggerDocumentExport('CSV')" class="w-full text-right p-3 hover:bg-slate-50 flex justify-between items-center border-t">
+              <span>خروجی CSV</span> <i class="fa-regular fa-file-excel text-emerald-600"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+      <div class="flex-1 overflow-y-auto p-4 space-y-3 slim-scroll" id="unsettledContainer"></div>
+    </div>
+
+    <!-- ===================== ACCOUNT MANAGER ===================== -->
+    <div id="accountManagerModal" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.openAccountManager(false)" class="p-2 hover:bg-teal-950/40 rounded-full" aria-label="بازگشت">
+          <i class="fa-solid fa-arrow-right text-lg"></i>
+        </button>
+        <span class="font-bold text-sm">مدیریت حساب‌ها</span>
+        <button onclick="App.openAccountCreationForm()" class="p-2 hover:bg-teal-950/40 rounded-full" aria-label="افزودن">
+          <i class="fa-solid fa-plus text-lg"></i>
+        </button>
+      </header>
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 slim-scroll" id="accountsListContainer"></div>
+    </div>
+
+    <!-- ===================== TOOLBAR SETTINGS ===================== -->
+    <div id="toolbarSettingsModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl w-full max-w-sm p-4 space-y-4 text-xs text-slate-700 modal-slide-in">
+        <h4 class="font-bold text-sm border-b pb-2 text-slate-800">تنظیمات نوار ابزار زرین</h4>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <span class="font-bold block">نمایش تاریخ امروز</span>
+              <span class="text-[10px] text-slate-400">تقویم خورشیدی در نوار وضعیت</span>
+            </div>
+            <input type="checkbox" checked class="accent-teal-800 w-4 h-4">
+          </div>
+          <div class="flex justify-between items-center border-t pt-2">
+            <div>
+              <span class="font-bold block">نمایش پیامک بانکی</span>
+              <span class="text-[10px] text-slate-400">استخراج خودکار گردش کارت</span>
+            </div>
+            <input type="checkbox" checked class="accent-teal-800 w-4 h-4">
+          </div>
+          <div class="flex justify-between items-center border-t pt-2">
+            <div>
+              <span class="font-bold block">هشدار عدم ثبت تراکنش امروز</span>
+              <span class="text-[10px] text-slate-400">ارسال نوتیفیکیشن در پایان روز</span>
+            </div>
+            <input type="checkbox" checked class="accent-teal-800 w-4 h-4">
+          </div>
+        </div>
+        <button onclick="App.closeModal('toolbarSettingsModal')" class="w-full py-2 bg-appDarkTeal text-white rounded-lg text-xs font-bold shadow-md">ذخیره تنظیمات</button>
+      </div>
+    </div>
+
+    <!-- ===================== ACCOUNT CREATION ===================== -->
+    <div id="accountCreationSubpage" class="absolute inset-0 bg-appBg z-50 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closeAccountCreationForm()" class="p-2 hover:bg-teal-950/40 rounded-full" aria-label="بازگشت">
+          <i class="fa-solid fa-arrow-right text-lg"></i>
+        </button>
+        <span class="font-bold text-sm">تعریف حساب جدید</span>
+        <div class="w-8"></div>
+      </header>
+      <form onsubmit="App.handleAccountCreation(event)" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs slim-scroll">
+        <div class="bg-white p-4 rounded-xl shadow-sm space-y-3.5 border">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">نوع حساب</label>
+            <div class="flex gap-2">
+              <label class="flex-1 border rounded-lg p-2 flex items-center gap-2 cursor-pointer has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50">
+                <input type="radio" name="newAccountType" value="bank" checked class="accent-teal-800">
+                <i class="fa-solid fa-building-columns text-blue-600"></i>
+                <span class="font-bold">بانک</span>
+              </label>
+              <label class="flex-1 border rounded-lg p-2 flex items-center gap-2 cursor-pointer has-[:checked]:border-teal-600 has-[:checked]:bg-teal-50">
+                <input type="radio" name="newAccountType" value="cash" class="accent-teal-800">
+                <i class="fa-solid fa-wallet text-teal-600"></i>
+                <span class="font-bold">کیف پول</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">بانک مربوطه</label>
+            <div class="flex items-center border rounded-lg bg-slate-50">
+              <span class="p-2 text-slate-400 border-l"><i class="fa-solid fa-bank"></i></span>
+              <select id="newAccountBank" class="w-full p-2 bg-transparent outline-none">
+                <option value="شهر">بانک شهر</option>
+                <option value="ملت">بانک ملت</option>
+                <option value="پاسارگاد">بانک پاسارگاد</option>
+                <option value="تجارت">بانک تجارت</option>
+                <option value="آینده">بانک آینده</option>
+                <option value="پارسیان">بانک پارسیان</option>
+                <option value="اقتصاد نوین">بانک اقتصاد نوین</option>
+                <option value="ملی">بانک ملی</option>
+                <option value="صادرات">بانک صادرات</option>
+                <option value="سپه">بانک سپه</option>
+                <option value="رفاه">بانک رفاه</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">عنوان حساب</label>
+            <input id="newAccountName" type="text" required placeholder="مثال: حساب تجارت شعبه اصلی" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">موجودی اولیه (اختیاری)</label>
+            <div class="flex items-center border rounded-lg bg-slate-50">
+              <span class="p-2 text-slate-400 border-l">ریال</span>
+              <input id="newAccountInitialBalance" type="number" placeholder="0" class="w-full p-2 bg-transparent outline-none text-left">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">شماره شبا (بدون IR)</label>
+            <input id="newAccountIban" type="text" placeholder="مثال: 012345678901234567890123" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+          </div>
+          <div class="flex items-center justify-between border-t pt-3">
+            <span class="font-bold text-slate-600">حساب پیش‌فرض</span>
+            <input type="checkbox" class="accent-teal-800 w-4 h-4">
+          </div>
+        </div>
+        <button type="submit" class="w-full py-3 bg-teal-800 hover:bg-teal-900 text-white rounded-xl font-bold shadow-md active:scale-95 transition-all">ثبت حساب جدید</button>
+      </form>
+    </div>
+
+    <!-- ===================== BUDGET FORM ===================== -->
+    <div id="budgetFormModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl max-w-xs w-full p-4 space-y-3 text-xs modal-slide-in">
+        <h4 class="font-bold text-sm text-center text-slate-700 border-b pb-2">تعریف بودجه جدید</h4>
+        <form onsubmit="App.handleBudgetSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">دسته‌بندی</label>
+            <select id="budgetCategory" class="w-full p-2.5 border rounded-lg bg-slate-50">
+              <option value="خوراک">خوراک</option>
+              <option value="کرایه">کرایه و حمل‌ونقل</option>
+              <option value="اینترنت">اینترنت</option>
+              <option value="قبوض">قبوض</option>
+              <option value="سلامت">سلامت</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">سقف بودجه ماهانه (ریال)</label>
+            <input id="budgetLimit" type="number" required placeholder="مثال: 5000000" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="button" onclick="App.closeBudgetForm()" class="flex-1 py-2.5 border rounded-lg text-slate-600 font-bold">انصراف</button>
+            <button type="submit" class="flex-1 py-2.5 bg-teal-800 text-white rounded-lg font-bold shadow">ثبت</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== ABOUT ===================== -->
+    <div id="aboutModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl max-w-sm w-full overflow-hidden text-xs text-slate-700 flex flex-col modal-slide-in">
+        <div class="bg-teal-900 p-4 text-center text-white space-y-3 relative">
+          <button onclick="App.closeModal('aboutModal')" class="absolute top-2 left-2 text-white/70 hover:text-white" aria-label="بستن">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+          <div class="w-14 h-14 mx-auto bg-white/10 rounded-full flex items-center justify-center text-2xl shadow-inner">
+            <i class="fa-solid fa-coins text-amber-300"></i>
+          </div>
+          <h3 class="font-bold text-base leading-none">زرین · Zarbin</h3>
+          <span class="text-[10px] text-teal-300 block">حسابدار هوشمند شخصی</span>
+        </div>
+        <div class="p-4 space-y-3 leading-relaxed">
+          <p class="font-bold text-teal-800 text-center">نرم‌افزار هوشمند ثبت، کنترل و موازنه مالی</p>
+          <p class="text-[11px] text-slate-500 leading-relaxed text-justify">
+            زرین (Zarbin) یک اپلیکیشن مدیریت مالی شخصی با پشتیبانی کامل از زبان فارسی، تقویم جلالی، پیامک‌های بانکی و گزارش‌های هوشمند است. تمام داده‌ها به‌صورت محلی روی دستگاه شما ذخیره می‌شوند.
+          </p>
+          <div class="border-t pt-2 space-y-1 text-slate-500 text-[11px]">
+            <div><span class="font-bold">ارائه‌دهنده:</span> SonaMother</div>
+            <div><span class="font-bold">نسخه:</span> <span class="version-badge inline-block">v1.0.0</span> <span class="build-number mr-2 text-slate-400">Build 20260626</span></div>
+            <div><span class="font-bold">مخزن:</span> github.com/SonaMother/Zarbin</div>
+            <div><span class="font-bold">پلتفرم:</span> Android (APK) · وب · PWA</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== TRANSACTION DETAILS ===================== -->
+    <div id="txDetailsModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl max-w-sm w-full overflow-hidden text-xs text-slate-700 modal-slide-in">
+        <div class="bg-appDarkTeal text-white p-4 relative">
+          <button onclick="App.closeModal('txDetailsModal')" class="absolute top-2 left-2 text-white/70 hover:text-white">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+          <div class="text-center">
+            <span id="txDetailsCategory" class="font-bold text-sm block">دسته</span>
+            <span id="txDetailsAmount" class="text-xl font-black mt-2 block">۰ ریال</span>
+          </div>
+        </div>
+        <div class="p-4 space-y-2.5 text-[11px]">
+          <div class="flex justify-between border-b pb-1.5"><span class="text-slate-400">نوع تراکنش</span><span id="txDetailsType" class="font-bold">—</span></div>
+          <div class="flex justify-between border-b pb-1.5"><span class="text-slate-400">تاریخ و ساعت</span><span id="txDetailsDate" class="font-bold">—</span></div>
+          <div class="flex justify-between border-b pb-1.5"><span class="text-slate-400">حساب</span><span id="txDetailsAccount" class="font-bold">—</span></div>
+          <div class="flex justify-between border-b pb-1.5"><span class="text-slate-400">مانده پس از تراکنش</span><span id="txDetailsBalance" class="font-bold">—</span></div>
+          <div class="flex justify-between"><span class="text-slate-400">یادداشت</span><span id="txDetailsNote" class="font-bold">—</span></div>
+        </div>
+        <div class="p-4 pt-0">
+          <button onclick="App.deleteTransactionFromDetails()" class="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-bold text-xs">
+            <i class="fa-solid fa-trash ml-1"></i> حذف تراکنش
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /appContainer -->
+
+  <!-- ===================== JS BUNDLE ===================== -->
+  <script src="js/lib/chart.umd.min.js"></script>
+  <script src="js/jalali.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

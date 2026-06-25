@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">زرین · Zarbin</string>
+    <string name="title_activity_main">زرین · Zarbin</string>
+    <string name="package_name">com.sonamother.zarbin</string>
+    <string name="custom_url_scheme">com.sonamother.zarbin</string>
+</resources>
