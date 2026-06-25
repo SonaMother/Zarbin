@@ -3,8 +3,8 @@
    مدیریت حالت و ذخیره‌سازی
    ============================================ */
 
-const APP_VERSION = '1.2.0';
-const APP_BUILD = '20260628';
+const APP_VERSION = '1.3.0';
+const APP_BUILD = '20260629';
 const STORAGE_KEY = 'zarbin_state_v1';
 const FIRST_RUN_KEY = 'zarbin_first_run_done';
 
@@ -62,6 +62,9 @@ function getDemoState() {
       { id: 'loan', name: 'وام', icon: 'fa-people-group', color: '#f97316', type: 'other' },
       { id: 'lend', name: 'قرض دادن', icon: 'fa-hand-holding-dollar', color: '#64748b', type: 'other' }
     ],
+    recurringTransactions: [
+      { id: 'rec_demo_1', type: 'income', category: 'حقوق', amount: 35000000, account: 'حساب ۴۰۰۱۰۰', icon: 'fa-briefcase', color: 'bg-emerald-600', note: 'حقوق ماهانه (دمو)', frequency: 'monthly', startDate: '1405/01/01', nextRun: '1405/04/30', active: true, createdAt: '2026-01-01T00:00:00.000Z' }
+    ],
     budgets: [
       { id: 1, category: 'خوراک', limit: 5000000, period: 'monthly' },
       { id: 2, category: 'کرایه', limit: 3000000, period: 'monthly' },
@@ -116,6 +119,7 @@ function getCleanState() {
       { id: 'loan', name: 'وام', icon: 'fa-people-group', color: '#f97316', type: 'other' },
       { id: 'lend', name: 'قرض دادن', icon: 'fa-hand-holding-dollar', color: '#64748b', type: 'other' }
     ],
+    recurringTransactions: [],
     budgets: [],
     smsInbox: [],
     settings: {
@@ -152,6 +156,10 @@ const Store = {
         this.isFirstRun = true;
         // Load minimal placeholder state so the app shell renders without errors
         this.state = getCleanState();
+      }
+      // Process any due recurring transactions
+      if (!this.isFirstRun) {
+        try { this.processRecurringTransactions(); } catch(e) { console.warn('Recurring processing failed:', e); }
       }
     } catch (e) {
       console.warn('Failed to load state, using clean default', e);
@@ -328,6 +336,196 @@ const Store = {
   toggleDarkMode() {
     this.state.darkMode = !this.state.darkMode;
     this.save();
+  },
+
+  // ==================== Category operations ====================
+  addCategory(name, icon, color, type, parentId) {
+    const cat = {
+      id: 'cat_' + Date.now() + Math.floor(Math.random() * 1000),
+      name,
+      icon: icon || 'fa-tag',
+      color: color || '#0f766e',
+      type: type || 'expense',
+      parentId: parentId || null,
+      custom: true
+    };
+    this.state.categories.push(cat);
+    this.save();
+    return cat;
+  },
+
+  updateCategory(id, updates) {
+    const cat = this.state.categories.find(c => c.id === id);
+    if (cat && cat.custom) {
+      Object.assign(cat, updates);
+      this.save();
+    }
+  },
+
+  deleteCategory(id) {
+    const cat = this.state.categories.find(c => c.id === id);
+    if (!cat || !cat.custom) return false;
+    this.state.categories = this.state.categories.filter(c => c.id !== id && c.parentId !== id);
+    this.save();
+    return true;
+  },
+
+  getCategoriesByType(type) {
+    return this.state.categories.filter(c => c.type === type);
+  },
+
+  getMainCategories() {
+    return this.state.categories.filter(c => !c.parentId);
+  },
+
+  getSubCategories(parentId) {
+    return this.state.categories.filter(c => c.parentId === parentId);
+  },
+
+  // ==================== Recurring Transactions ====================
+  addRecurringTransaction(tx) {
+    const recurring = {
+      id: 'rec_' + Date.now() + Math.floor(Math.random() * 1000),
+      type: tx.type,
+      category: tx.category,
+      amount: tx.amount,
+      account: tx.account,
+      destAccount: tx.destAccount,
+      icon: tx.icon,
+      color: tx.color,
+      note: tx.note || '',
+      frequency: tx.frequency || 'monthly', // daily, weekly, monthly, yearly
+      startDate: tx.date || this._todayStr(),
+      nextRun: tx.date || this._todayStr(),
+      active: true,
+      createdAt: new Date().toISOString()
+    };
+    if (!this.state.recurringTransactions) this.state.recurringTransactions = [];
+    this.state.recurringTransactions.push(recurring);
+    this.save();
+    return recurring;
+  },
+
+  deleteRecurring(id) {
+    if (!this.state.recurringTransactions) return;
+    this.state.recurringTransactions = this.state.recurringTransactions.filter(r => r.id !== id);
+    this.save();
+  },
+
+  toggleRecurring(id) {
+    if (!this.state.recurringTransactions) return;
+    const r = this.state.recurringTransactions.find(x => x.id === id);
+    if (r) {
+      r.active = !r.active;
+      this.save();
+    }
+  },
+
+  // Check and create due recurring transactions (called on app init)
+  processRecurringTransactions() {
+    if (!this.state.recurringTransactions || !this.state.recurringTransactions.length) return;
+    const today = this._todayStr();
+    let created = 0;
+    this.state.recurringTransactions.forEach(r => {
+      if (!r.active) return;
+      // Loop while nextRun is due (in case multiple periods have passed)
+      while (r.active && r.nextRun <= today) {
+        // Create the transaction for this date
+        const tx = {
+          type: r.type,
+          category: r.category,
+          amount: r.amount,
+          account: r.account,
+          destAccount: r.destAccount,
+          icon: r.icon,
+          color: r.color,
+          note: (r.note || '') + ' (تکراری)',
+          date: r.nextRun,
+          time: '09:00',
+          recurringId: r.id
+        };
+        this.addTransaction(tx);
+        // For transfers, also credit destination
+        if (r.type === 'transfer' && r.destAccount && this.state.accounts[r.destAccount] !== undefined) {
+          this.state.accounts[r.destAccount] += r.amount;
+        }
+        // Advance nextRun
+        r.nextRun = this._advanceDate(r.nextRun, r.frequency);
+        // Safety: stop after 12 iterations to prevent infinite loop on bad data
+        created++;
+        if (created > 12) break;
+      }
+    });
+    if (created > 0) this.save();
+    return created;
+  },
+
+  _todayStr() {
+    const t = JalaliDate.today();
+    return `${String(t[0]).padStart(4, '0')}/${String(t[1]).padStart(2, '0')}/${String(t[2]).padStart(2, '0')}`;
+  },
+
+  _advanceDate(dateStr, frequency) {
+    const parts = dateStr.split('/').map(p => parseInt(p));
+    const [jy, jm, jd] = parts;
+    const [gy, gm, gd] = JalaliDate.jalaliToGregorian(jy, jm, jd);
+    const d = new Date(gy, gm - 1, gd);
+    switch (frequency) {
+      case 'daily': d.setDate(d.getDate() + 1); break;
+      case 'weekly': d.setDate(d.getDate() + 7); break;
+      case 'monthly': d.setMonth(d.getMonth() + 1); break;
+      case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
+      default: d.setMonth(d.getMonth() + 1);
+    }
+    const [njy, njm, njd] = JalaliDate.gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    return `${String(njy).padStart(4, '0')}/${String(njm).padStart(2, '0')}/${String(njd).padStart(2, '0')}`;
+  },
+
+  // ==================== Reports / Savings ====================
+  // Get income, expense, savings for a given year
+  getYearlySummary(jy) {
+    const prefix = `${jy}/`;
+    let income = 0, expense = 0, other = 0;
+    this.state.transactions.forEach(t => {
+      if (!t.date || !t.date.startsWith(prefix)) return;
+      if (t.type === 'income') income += t.amount;
+      else if (t.type === 'expense') expense += t.amount;
+      else other += t.amount;
+    });
+    return {
+      income,
+      expense,
+      other,
+      savings: income - expense, // savings = income - expense (excludes loans/transfers)
+      total: income - expense - other
+    };
+  },
+
+  // Get monthly summary for a year (12 entries)
+  getMonthlySummaries(jy) {
+    const result = [];
+    for (let m = 1; m <= 12; m++) {
+      const prefix = `${jy}/${String(m).padStart(2, '0')}`;
+      let income = 0, expense = 0;
+      this.state.transactions.forEach(t => {
+        if (!t.date || !t.date.startsWith(prefix)) return;
+        if (t.type === 'income') income += t.amount;
+        else if (t.type === 'expense') expense += t.amount;
+      });
+      result.push({ month: m, income, expense, savings: income - expense });
+    }
+    return result;
+  },
+
+  // Get transactions for a year, filtered by type
+  getYearlyTransactions(jy, typeFilter) {
+    const prefix = `${jy}/`;
+    return this.state.transactions.filter(t => {
+      if (!t.date || !t.date.startsWith(prefix)) return false;
+      if (typeFilter === 'income') return t.type === 'income';
+      if (typeFilter === 'expense') return t.type === 'expense';
+      return true;
+    });
   }
 };
 

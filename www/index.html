@@ -68,8 +68,8 @@
       </div>
     </header>
 
-    <!-- ===================== TAB NAVIGATION ===================== -->
-    <nav class="bg-appDarkTeal text-slate-300 flex text-[11px] shrink-0 select-none border-t border-teal-950/40">
+    <!-- ===================== SUB-TAB NAVIGATION (changes per bottom-tab) ===================== -->
+    <nav id="subTabBar" class="bg-appDarkTeal text-slate-300 flex text-[11px] shrink-0 select-none border-t border-teal-950/40">
       <button onclick="App.switchTab('main')" id="tab-main" class="flex-1 py-3 text-center border-b-2 border-teal-400 text-white font-bold transition-all">هزینه/درآمد</button>
       <button onclick="App.switchTab('debts')" id="tab-debts" class="flex-1 py-3 text-center border-b-2 border-transparent hover:text-white transition-all">طلب/بدهی</button>
       <button onclick="App.switchTab('breakdown')" id="tab-breakdown" class="flex-1 py-3 text-center border-b-2 border-transparent hover:text-white transition-all">به تفکیک</button>
@@ -184,6 +184,17 @@
 
       <!-- ============ TAB 5: REPORTS ============ -->
       <div id="view-goraresh" class="tab-view hidden p-3 space-y-2">
+        <div onclick="App.switchMainView('reports-yearly')" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center"><i class="fa-solid fa-chart-line"></i></span>
+            <div>
+              <span class="text-xs font-bold block">گزارش سالانه (درآمد/هزینه/پس‌انداز)</span>
+              <span class="text-[10px] text-slate-400">نمودار ماهانه و خلاصه سال جاری</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
         <div onclick="App.openUnsettledReport()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
           <div class="flex items-center gap-3">
             <span class="w-9 h-9 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><i class="fa-solid fa-clock-rotate-left"></i></span>
@@ -273,14 +284,162 @@
           <i class="fa-solid fa-chevron-left text-red-400 text-xs"></i>
         </div>
       </div>
+
+      <!-- ============ TAB 6: CATEGORIES MANAGEMENT ============ -->
+      <div id="view-categories" class="tab-view hidden p-4 space-y-3">
+        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+          <div class="flex items-center gap-2 bg-slate-50 rounded-lg p-2 mb-3">
+            <i class="fa-solid fa-magnifying-glass text-slate-400"></i>
+            <input id="categorySearch" type="text" placeholder="جستجوی دسته..." class="flex-1 bg-transparent outline-none text-xs" oninput="App.filterCategories(this.value)">
+            <button onclick="App.openCategoryForm()" class="bg-teal-800 text-white px-3 py-1.5 rounded-md text-[11px] font-bold whitespace-nowrap">
+              <i class="fa-solid fa-plus ml-1"></i> افزودن دسته
+            </button>
+          </div>
+          <div class="flex gap-1 border-b border-slate-100 pb-2 mb-3 text-[11px] font-bold">
+            <button onclick="App.filterCategoriesByType('all')" id="cat-filter-all" class="px-3 py-1.5 rounded-md bg-teal-800 text-white">همه</button>
+            <button onclick="App.filterCategoriesByType('expense')" id="cat-filter-expense" class="px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100">هزینه</button>
+            <button onclick="App.filterCategoriesByType('income')" id="cat-filter-income" class="px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100">درآمد</button>
+            <button onclick="App.filterCategoriesByType('other')" id="cat-filter-other" class="px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100">سایر</button>
+          </div>
+          <div id="categoriesListContainer" class="space-y-2"></div>
+        </div>
+      </div>
+
+      <!-- ============ TAB 7: YEARLY REPORTS ============ -->
+      <div id="view-reports-yearly" class="tab-view hidden p-4 space-y-3">
+        <!-- Year selector -->
+        <div class="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+          <button onclick="App.changeReportYear(-1)" class="p-2 hover:bg-slate-100 rounded-full" aria-label="سال قبل">
+            <i class="fa-solid fa-chevron-right text-teal-800"></i>
+          </button>
+          <span id="reportYearLabel" class="font-bold text-lg text-teal-900">۱۴۰۵</span>
+          <button onclick="App.changeReportYear(1)" class="p-2 hover:bg-slate-100 rounded-full" aria-label="سال بعد">
+            <i class="fa-solid fa-chevron-left text-teal-800"></i>
+          </button>
+        </div>
+
+        <!-- Report sub-tabs -->
+        <div class="bg-white rounded-xl border border-slate-100 overflow-hidden">
+          <div class="flex text-[11px] font-bold border-b border-slate-100">
+            <button onclick="App.switchReportTab('summary')" id="rpt-tab-summary" class="flex-1 py-2.5 bg-teal-800 text-white">خلاصه</button>
+            <button onclick="App.switchReportTab('income-expense')" id="rpt-tab-income-expense" class="flex-1 py-2.5 text-slate-600 hover:bg-slate-50">دریافت/پرداخت</button>
+            <button onclick="App.switchReportTab('incomes')" id="rpt-tab-incomes" class="flex-1 py-2.5 text-slate-600 hover:bg-slate-50">دریافت‌ها</button>
+            <button onclick="App.switchReportTab('expenses')" id="rpt-tab-expenses" class="flex-1 py-2.5 text-slate-600 hover:bg-slate-50">پرداخت‌ها</button>
+          </div>
+          <div id="reportContent" class="p-4"></div>
+        </div>
+      </div>
+
+      <!-- ============ TAB 8: RECURRING TRANSACTIONS ============ -->
+      <div id="view-recurring" class="tab-view hidden p-4 space-y-3">
+        <div class="bg-gradient-to-l from-teal-800 to-teal-900 text-white p-4 rounded-xl shadow-md">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] opacity-75 block">تراکنش‌های تکراری فعال</span>
+              <span id="recurringCount" class="text-2xl font-black">۰</span>
+            </div>
+            <i class="fa-solid fa-arrows-rotate text-3xl opacity-50"></i>
+          </div>
+        </div>
+        <button onclick="App.openRecurringForm()" class="w-full py-2.5 bg-teal-800 text-white rounded-xl text-xs font-bold shadow-md">
+          <i class="fa-solid fa-plus ml-1"></i> تعریف تراکنش تکراری جدید
+        </button>
+        <div id="recurringListContainer" class="space-y-2"></div>
+      </div>
+
+      <!-- ============ TAB 9: USER GUIDE ============ -->
+      <div id="view-help" class="tab-view hidden p-4 space-y-2">
+        <div class="bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-center mb-3">
+          <div class="w-14 h-14 mx-auto rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-xl mb-2">
+            <i class="fa-solid fa-circle-question"></i>
+          </div>
+          <h3 class="font-bold text-sm">راهنمای استفاده</h3>
+          <p class="text-[11px] text-slate-400 mt-1">آموزش گام‌به‌گام استفاده از زرین</p>
+        </div>
+        <div onclick="App.openHelpTopic('transactions')" class="bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="fa-solid fa-receipt"></i></span>
+          <div class="flex-1">
+            <span class="text-xs font-bold block">چگونه تراکنش‌ها را ثبت و مدیریت کنیم؟</span>
+            <span class="text-[10px] text-slate-400">آموزش ثبت، ویرایش و حذف تراکنش‌ها</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+        <div onclick="App.openHelpTopic('reports')" class="bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="fa-solid fa-chart-line"></i></span>
+          <div class="flex-1">
+            <span class="text-xs font-bold block">چگونه گزارش‌ها و نمودارها را مشاهده کنیم؟</span>
+            <span class="text-[10px] text-slate-400">گزارش ماهانه، سالانه و نمودارها</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+        <div onclick="App.openHelpTopic('categories')" class="bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-tags"></i></span>
+          <div class="flex-1">
+            <span class="text-xs font-bold block">چگونه دسته‌ها و زیردسته‌ها را مدیریت کنیم؟</span>
+            <span class="text-[10px] text-slate-400">ساخت، ویرایش و حذف دسته‌بندی‌ها</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+        <div onclick="App.openHelpTopic('recurring')" class="bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-arrows-rotate"></i></span>
+          <div class="flex-1">
+            <span class="text-xs font-bold block">چگونه تراکنش‌های تکراری را تنظیم کنیم؟</span>
+            <span class="text-[10px] text-slate-400">راه‌اندازی تراکنش‌های روزانه/هفتگی/ماهانه/سالانه</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+        <div onclick="App.openHelpTopic('budgets')" class="bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-red-100 text-red-600 flex items-center justify-center"><i class="fa-solid fa-vault"></i></span>
+          <div class="flex-1">
+            <span class="text-xs font-bold block">چگونه بودجه ماهانه تعریف کنیم؟</span>
+            <span class="text-[10px] text-slate-400">کنترل هزینه‌ها با سقف بودجه</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+        <div onclick="App.openHelpTopic('backup')" class="bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center"><i class="fa-solid fa-cloud-arrow-down"></i></span>
+          <div class="flex-1">
+            <span class="text-xs font-bold block">پشتیبان‌گیری و بازگردانی داده‌ها</span>
+            <span class="text-[10px] text-slate-400">نحوه بکاپ‌گیری و انتقال به دستگاه دیگر</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+        <div onclick="App.openHelpTopic('faq')" class="bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm flex items-center gap-3">
+          <span class="w-9 h-9 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center"><i class="fa-solid fa-circle-info"></i></span>
+          <div class="flex-1">
+            <span class="text-xs font-bold block">سوالات متداول (FAQ)</span>
+            <span class="text-[10px] text-slate-400">پاسخ به پرسش‌های رایج کاربران</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+      </div>
+
     </main>
 
-    <!-- ===================== FLOATING ACTION BUTTON ===================== -->
-    <div id="fabContainer" class="absolute bottom-5 right-5 z-40 select-none safe-bottom">
-      <button onclick="App.toggleFabMenu()" id="fabButton" class="w-14 h-14 bg-appDarkTeal text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300">
-        <i class="fa-solid fa-plus text-xl transition-all duration-300" id="fabIcon"></i>
+    <!-- ===================== BOTTOM NAVIGATION BAR ===================== -->
+    <nav class="bg-white border-t border-slate-200 flex shrink-0 safe-bottom shadow-lg">
+      <button onclick="App.switchMainView('home')" id="bottomnav-home" class="flex-1 py-2 flex flex-col items-center gap-0.5 text-teal-800 transition-all">
+        <i class="fa-solid fa-house text-base"></i>
+        <span class="text-[9px] font-bold">خانه</span>
       </button>
-    </div>
+      <button onclick="App.switchMainView('reports')" id="bottomnav-reports" class="flex-1 py-2 flex flex-col items-center gap-0.5 text-slate-400 transition-all">
+        <i class="fa-solid fa-chart-pie text-base"></i>
+        <span class="text-[9px] font-bold">گزارش‌ها</span>
+      </button>
+      <button onclick="App.toggleFabMenu()" id="bottomnav-fab" class="flex-1 py-2 flex flex-col items-center gap-0.5 text-slate-400 transition-all relative">
+        <span class="w-11 h-11 -mt-4 bg-appDarkTeal text-white rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+          <i class="fa-solid fa-plus text-base"></i>
+        </span>
+      </button>
+      <button onclick="App.switchMainView('categories')" id="bottomnav-categories" class="flex-1 py-2 flex flex-col items-center gap-0.5 text-slate-400 transition-all">
+        <i class="fa-solid fa-tags text-base"></i>
+        <span class="text-[9px] font-bold">دسته‌ها</span>
+      </button>
+      <button onclick="App.switchMainView('more')" id="bottomnav-more" class="flex-1 py-2 flex flex-col items-center gap-0.5 text-slate-400 transition-all">
+        <i class="fa-solid fa-ellipsis text-base"></i>
+        <span class="text-[9px] font-bold">بیشتر</span>
+      </button>
+    </nav>
 
     <!-- ===================== FAB OVERLAY ===================== -->
     <div id="fabOverlay" class="absolute inset-0 bg-slate-950/70 backdrop-blur-sm z-30 hidden transition-all duration-300">
@@ -400,6 +559,30 @@
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">یادداشت (اختیاری)</label>
             <input id="formNote" type="text" placeholder="مثال: خرید ماهانه" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+
+          <!-- Recurring transaction toggle -->
+          <div class="border-t pt-3 mt-1">
+            <div class="flex justify-between items-center">
+              <div class="flex-1">
+                <span class="text-xs font-bold text-slate-700 block">تراکنش تکراری</span>
+                <span class="text-[10px] text-slate-400">این تراکنش به‌صورت خودکار تکرار شود</span>
+              </div>
+              <div id="formRecurringToggle" class="toggle-switch" onclick="App.toggleRecurringField()"></div>
+            </div>
+            <div id="formRecurringOptions" class="hidden mt-2">
+              <label class="block text-[11px] text-slate-400 mb-1">تناوب تکرار</label>
+              <div class="grid grid-cols-4 gap-1">
+                <button type="button" onclick="App.setRecurringFrequency('daily')" id="freq-daily" class="py-1.5 text-[10px] font-bold border rounded-md text-slate-600 hover:bg-slate-50">روزانه</button>
+                <button type="button" onclick="App.setRecurringFrequency('weekly')" id="freq-weekly" class="py-1.5 text-[10px] font-bold border rounded-md text-slate-600 hover:bg-slate-50">هفتگی</button>
+                <button type="button" onclick="App.setRecurringFrequency('monthly')" id="freq-monthly" class="py-1.5 text-[10px] font-bold border rounded-md bg-teal-800 text-white">ماهانه</button>
+                <button type="button" onclick="App.setRecurringFrequency('yearly')" id="freq-yearly" class="py-1.5 text-[10px] font-bold border rounded-md text-slate-600 hover:bg-slate-50">سالانه</button>
+              </div>
+              <p class="text-[9px] text-slate-400 mt-2 leading-relaxed">
+                <i class="fa-solid fa-circle-info ml-1"></i>
+                تراکنش در تاریخ مشخص شده ایجاد می‌شود و بر اساس تناوب انتخابی به‌طور خودکار تکرار می‌گردد.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -778,6 +961,152 @@
       </div>
     </div>
 
+    <!-- ===================== CATEGORY FORM MODAL ===================== -->
+    <div id="categoryFormModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-xs w-full p-4 space-y-3 text-xs modal-slide-in">
+        <h4 class="font-bold text-sm text-center border-b pb-2">افزودن دسته جدید</h4>
+        <form onsubmit="App.handleCategorySubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">نام دسته</label>
+            <input id="newCatName" type="text" required placeholder="مثال: خرید کتاب" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">نوع</label>
+            <select id="newCatType" class="w-full p-2.5 border rounded-lg bg-slate-50">
+              <option value="expense">هزینه</option>
+              <option value="income">درآمد</option>
+              <option value="other">سایر</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">آیکون (نام FontAwesome)</label>
+            <input id="newCatIcon" type="text" placeholder="fa-tag" value="fa-tag" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+            <p class="text-[9px] text-slate-400 mt-1">مثال: fa-utensils, fa-car, fa-bolt, fa-heart-pulse</p>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">رنگ</label>
+            <div class="flex gap-2 flex-wrap">
+              <input type="radio" name="catColor" value="#ef4444" id="cc-red" class="hidden" checked><label for="cc-red" class="w-7 h-7 rounded-full bg-red-500 cursor-pointer ring-2 ring-offset-2 ring-red-500"></label>
+              <input type="radio" name="catColor" value="#10b981" id="cc-green" class="hidden"><label for="cc-green" class="w-7 h-7 rounded-full bg-emerald-500 cursor-pointer"></label>
+              <input type="radio" name="catColor" value="#f59e0b" id="cc-amber" class="hidden"><label for="cc-amber" class="w-7 h-7 rounded-full bg-amber-500 cursor-pointer"></label>
+              <input type="radio" name="catColor" value="#a855f7" id="cc-purple" class="hidden"><label for="cc-purple" class="w-7 h-7 rounded-full bg-purple-500 cursor-pointer"></label>
+              <input type="radio" name="catColor" value="#0f766e" id="cc-teal" class="hidden"><label for="cc-teal" class="w-7 h-7 rounded-full bg-teal-700 cursor-pointer"></label>
+              <input type="radio" name="catColor" value="#dc2626" id="cc-darkred" class="hidden"><label for="cc-darkred" class="w-7 h-7 rounded-full bg-red-700 cursor-pointer"></label>
+              <input type="radio" name="catColor" value="#1e40af" id="cc-blue" class="hidden"><label for="cc-blue" class="w-7 h-7 rounded-full bg-blue-800 cursor-pointer"></label>
+              <input type="radio" name="catColor" value="#64748b" id="cc-slate" class="hidden"><label for="cc-slate" class="w-7 h-7 rounded-full bg-slate-600 cursor-pointer"></label>
+            </div>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="button" onclick="App.closeModal('categoryFormModal')" class="flex-1 py-2.5 border rounded-lg text-slate-600 font-bold">انصراف</button>
+            <button type="submit" class="flex-1 py-2.5 bg-teal-800 text-white rounded-lg font-bold shadow">ثبت</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== RECURRING FORM MODAL ===================== -->
+    <div id="recurringFormModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full p-4 space-y-3 text-xs modal-slide-in max-h-[90%] overflow-y-auto slim-scroll">
+        <h4 class="font-bold text-sm text-center border-b pb-2">تعریف تراکنش تکراری</h4>
+        <form onsubmit="App.handleRecurringSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">نوع تراکنش</label>
+            <select id="recType" class="w-full p-2.5 border rounded-lg bg-slate-50">
+              <option value="expense">هزینه</option>
+              <option value="income">درآمد</option>
+              <option value="transfer">انتقال</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">دسته‌بندی</label>
+            <input id="recCategory" type="text" required placeholder="مثال: حقوق، اجاره" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">مبلغ</label>
+            <input id="recAmount" type="number" required placeholder="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">حساب</label>
+            <select id="recAccount" class="w-full p-2.5 border rounded-lg bg-slate-50"></select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">تناوب</label>
+            <select id="recFrequency" class="w-full p-2.5 border rounded-lg bg-slate-50">
+              <option value="daily">روزانه</option>
+              <option value="weekly">هفتگی</option>
+              <option value="monthly" selected>ماهانه</option>
+              <option value="yearly">سالانه</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">یادداشت (اختیاری)</label>
+            <input id="recNote" type="text" placeholder="مثال: اجاره ماهانه" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="button" onclick="App.closeModal('recurringFormModal')" class="flex-1 py-2.5 border rounded-lg text-slate-600 font-bold">انصراف</button>
+            <button type="submit" class="flex-1 py-2.5 bg-teal-800 text-white rounded-lg font-bold shadow">ثبت</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== HELP TOPIC MODAL ===================== -->
+    <div id="helpTopicModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full max-h-[85%] overflow-hidden flex flex-col text-xs text-slate-700 modal-slide-in">
+        <div class="bg-appDarkTeal text-white p-4 flex justify-between items-center shrink-0">
+          <h4 id="helpTopicTitle" class="font-bold text-sm">راهنما</h4>
+          <button onclick="App.closeModal('helpTopicModal')" class="text-white/70 hover:text-white">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <div id="helpTopicContent" class="p-4 overflow-y-auto slim-scroll text-[11px] leading-relaxed text-slate-600"></div>
+      </div>
+    </div>
+
+    <!-- ===================== "MORE" MENU MODAL ===================== -->
+    <div id="moreMenuModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-end justify-center p-0">
+      <div class="bg-white w-full max-w-md rounded-t-2xl p-4 space-y-2 modal-slide-in safe-bottom">
+        <div class="flex justify-between items-center border-b pb-3 mb-2">
+          <h4 class="font-bold text-sm">منوی بیشتر</h4>
+          <button onclick="App.closeModal('moreMenuModal')" class="text-slate-400">
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
+        </div>
+        <button onclick="App.closeModal('moreMenuModal'); App.switchMainView('recurring')" class="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg text-right">
+          <span class="w-9 h-9 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-arrows-rotate"></i></span>
+          <div class="flex-1 text-right">
+            <span class="text-xs font-bold block">تراکنش‌های تکراری</span>
+            <span class="text-[10px] text-slate-400">مدیریت تراکنش‌های خودکار</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-300 text-xs"></i>
+        </button>
+        <button onclick="App.closeModal('moreMenuModal'); App.switchMainView('help')" class="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg text-right">
+          <span class="w-9 h-9 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center"><i class="fa-solid fa-circle-question"></i></span>
+          <div class="flex-1 text-right">
+            <span class="text-xs font-bold block">راهنمای استفاده</span>
+            <span class="text-[10px] text-slate-400">آموزش و سوالات متداول</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-300 text-xs"></i>
+        </button>
+        <button onclick="App.closeModal('moreMenuModal'); App.toggleSidebar(true)" class="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg text-right">
+          <span class="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center"><i class="fa-solid fa-gear"></i></span>
+          <div class="flex-1 text-right">
+            <span class="text-xs font-bold block">تنظیمات</span>
+            <span class="text-[10px] text-slate-400">فونت، واحد پول، حالت تاریک، تغییر حالت</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-300 text-xs"></i>
+        </button>
+        <button onclick="App.closeModal('moreMenuModal'); App.openAboutDialog()" class="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg text-right">
+          <span class="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center"><i class="fa-solid fa-circle-info"></i></span>
+          <div class="flex-1 text-right">
+            <span class="text-xs font-bold block">درباره زرین</span>
+            <span class="text-[10px] text-slate-400">اطلاعات نسخه و اعتبارات</span>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-300 text-xs"></i>
+        </button>
+      </div>
+    </div>
+
     <!-- ===================== ONBOARDING (FIRST RUN) ===================== -->
     <div id="onboardingModal" class="absolute inset-0 bg-appDarkTeal z-[60] hidden flex-col items-center justify-center p-6 text-white overflow-y-auto slim-scroll">
       <!-- Hero art at top -->
@@ -837,7 +1166,7 @@
       </p>
 
       <div class="mt-3 text-[9px] text-teal-300/30">
-        نسخه <span class="version-badge inline-block">v1.2.0</span> · Build <span class="build-number">20260628</span>
+        نسخه <span class="version-badge inline-block">v1.3.0</span> · Build <span class="build-number">20260629</span>
       </div>
     </div>
 

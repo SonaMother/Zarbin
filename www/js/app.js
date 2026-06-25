@@ -140,18 +140,11 @@ const App = {
   // ==================== FAB ====================
   toggleFabMenu() {
     const overlay = document.getElementById('fabOverlay');
-    const icon = document.getElementById('fabIcon');
     const open = overlay.classList.contains('hidden');
     if (open) {
       overlay.classList.remove('hidden');
-      icon.classList.remove('fa-plus');
-      icon.classList.add('fa-xmark');
-      icon.style.transform = 'rotate(90deg)';
     } else {
       overlay.classList.add('hidden');
-      icon.classList.remove('fa-xmark');
-      icon.classList.add('fa-plus');
-      icon.style.transform = 'rotate(0deg)';
     }
   },
 
@@ -271,6 +264,9 @@ const App = {
       Store.state.accounts[destAcc] += amt;
       Store.save();
     }
+
+    // If recurring toggle was on, also create a recurring schedule
+    this.maybeCreateRecurringFromForm(tx);
 
     this.closeFormSubpage();
     Render.renderDashboard();
@@ -704,6 +700,274 @@ const App = {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) Store.save();
     });
+  },
+
+  // ==================== Bottom Navigation ====================
+  activeMainView: 'home',
+  reportYear: null,
+  reportTab: 'summary',
+  categoryFilter: 'all',
+  categorySearchQuery: '',
+  recurringFormState: { enabled: false, frequency: 'monthly' },
+
+  switchMainView(view) {
+    this.activeMainView = view;
+    // Update bottom nav active states
+    ['home', 'reports', 'categories', 'more'].forEach(v => {
+      const el = document.getElementById(`bottomnav-${v}`);
+      if (el) {
+        if (v === view) {
+          el.classList.remove('text-slate-400');
+          el.classList.add('text-teal-800');
+        } else {
+          el.classList.add('text-slate-400');
+          el.classList.remove('text-teal-800');
+        }
+      }
+    });
+
+    const subBar = document.getElementById('subTabBar');
+
+    if (view === 'home') {
+      // Show sub-tab bar and switch to main tab
+      if (subBar) subBar.classList.remove('hidden');
+      this.switchTab('main');
+    } else if (view === 'reports') {
+      // Show sub-tab bar and switch to goraresh (reports list)
+      if (subBar) subBar.classList.remove('hidden');
+      this.switchTab('goraresh');
+    } else if (view === 'categories') {
+      // Hide sub-tab bar, show categories view
+      if (subBar) subBar.classList.add('hidden');
+      this.showView('categories');
+      Render.renderCategoriesList();
+    } else if (view === 'more') {
+      // Open more menu modal
+      document.getElementById('moreMenuModal').classList.remove('hidden');
+    } else if (view === 'recurring') {
+      if (subBar) subBar.classList.add('hidden');
+      this.showView('recurring');
+      Render.renderRecurringList();
+    } else if (view === 'help') {
+      if (subBar) subBar.classList.add('hidden');
+      this.showView('help');
+    } else if (view === 'reports-yearly') {
+      if (subBar) subBar.classList.add('hidden');
+      this.showView('reports-yearly');
+      this.renderReportContent();
+    }
+  },
+
+  // Helper: show a single view, hide all others
+  showView(viewId) {
+    document.querySelectorAll('.tab-view').forEach(view => view.classList.add('hidden'));
+    const el = document.getElementById(`view-${viewId}`);
+    if (el) el.classList.remove('hidden');
+  },
+
+  // ==================== Categories Management ====================
+  openCategoryForm() {
+    document.getElementById('categoryFormModal').classList.remove('hidden');
+    document.getElementById('newCatName').value = '';
+    document.getElementById('newCatIcon').value = 'fa-tag';
+  },
+
+  handleCategorySubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('newCatName').value.trim();
+    const type = document.getElementById('newCatType').value;
+    const icon = document.getElementById('newCatIcon').value.trim() || 'fa-tag';
+    const color = document.querySelector('input[name="catColor"]:checked')?.value || '#0f766e';
+    if (!name) {
+      this.toast('نام دسته را وارد کنید', 'error');
+      return;
+    }
+    Store.addCategory(name, icon, color, type);
+    this.closeModal('categoryFormModal');
+    Render.renderCategoriesList();
+    this.toast('دسته جدید اضافه شد', 'success');
+  },
+
+  deleteCategory(id) {
+    if (!confirm('حذف این دسته؟ تراکنش‌های مرتبط دست‌نخورده باقی می‌مانند.')) return;
+    if (Store.deleteCategory(id)) {
+      Render.renderCategoriesList();
+      this.toast('دسته حذف شد', 'success');
+    } else {
+      this.toast('امکان حذف دسته پیش‌فرض وجود ندارد', 'error');
+    }
+  },
+
+  filterCategories(query) {
+    this.categorySearchQuery = query;
+    Render.renderCategoriesList();
+  },
+
+  filterCategoriesByType(type) {
+    this.categoryFilter = type;
+    // Update active button
+    ['all', 'expense', 'income', 'other'].forEach(t => {
+      const btn = document.getElementById(`cat-filter-${t}`);
+      if (btn) {
+        if (t === type) {
+          btn.classList.add('bg-teal-800', 'text-white');
+          btn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+        } else {
+          btn.classList.remove('bg-teal-800', 'text-white');
+          btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+        }
+      }
+    });
+    Render.renderCategoriesList();
+  },
+
+  // ==================== Recurring Transactions ====================
+  toggleRecurringField() {
+    const toggle = document.getElementById('formRecurringToggle');
+    const options = document.getElementById('formRecurringOptions');
+    this.recurringFormState.enabled = !this.recurringFormState.enabled;
+    toggle.classList.toggle('active', this.recurringFormState.enabled);
+    options.classList.toggle('hidden', !this.recurringFormState.enabled);
+  },
+
+  setRecurringFrequency(freq) {
+    this.recurringFormState.frequency = freq;
+    ['daily', 'weekly', 'monthly', 'yearly'].forEach(f => {
+      const btn = document.getElementById(`freq-${f}`);
+      if (btn) {
+        if (f === freq) {
+          btn.classList.add('bg-teal-800', 'text-white');
+          btn.classList.remove('text-slate-600', 'hover:bg-slate-50');
+        } else {
+          btn.classList.remove('bg-teal-800', 'text-white');
+          btn.classList.add('text-slate-600', 'hover:bg-slate-50');
+        }
+      }
+    });
+  },
+
+  // Hook into transaction form submit — if recurring enabled, also create a recurring schedule
+  // (called from handleFormSubmit after Store.addTransaction)
+  maybeCreateRecurringFromForm(txData) {
+    if (this.recurringFormState.enabled) {
+      Store.addRecurringTransaction({
+        ...txData,
+        frequency: this.recurringFormState.frequency,
+        date: Store.state.selectedDate
+      });
+    }
+    // Reset state for next time
+    this.recurringFormState = { enabled: false, frequency: 'monthly' };
+    const toggle = document.getElementById('formRecurringToggle');
+    const options = document.getElementById('formRecurringOptions');
+    if (toggle) toggle.classList.remove('active');
+    if (options) options.classList.add('hidden');
+  },
+
+  openRecurringForm() {
+    document.getElementById('recurringFormModal').classList.remove('hidden');
+    // Populate account dropdown
+    const sel = document.getElementById('recAccount');
+    sel.innerHTML = '';
+    Object.keys(Store.state.accounts).forEach(acc => {
+      const opt = document.createElement('option');
+      opt.value = acc;
+      opt.textContent = acc;
+      sel.appendChild(opt);
+    });
+    // Reset form
+    document.getElementById('recCategory').value = '';
+    document.getElementById('recAmount').value = '';
+    document.getElementById('recNote').value = '';
+  },
+
+  handleRecurringSubmit(e) {
+    e.preventDefault();
+    const type = document.getElementById('recType').value;
+    const category = document.getElementById('recCategory').value.trim();
+    const amount = parseInt(document.getElementById('recAmount').value);
+    const account = document.getElementById('recAccount').value;
+    const frequency = document.getElementById('recFrequency').value;
+    const note = document.getElementById('recNote').value.trim();
+
+    if (!amount || amount <= 0) {
+      this.toast('مبلغ معتبر وارد کنید', 'error');
+      return;
+    }
+    if (!category) {
+      this.toast('دسته را وارد کنید', 'error');
+      return;
+    }
+
+    const icon = type === 'income' ? 'fa-arrow-up-long' : type === 'transfer' ? 'fa-right-left' : 'fa-arrow-down-long';
+    const color = type === 'income' ? 'bg-emerald-500' : type === 'transfer' ? 'bg-slate-700' : 'bg-red-500';
+
+    Store.addRecurringTransaction({
+      type, category, amount, account, frequency, note, icon, color
+    });
+    this.closeModal('recurringFormModal');
+    Render.renderRecurringList();
+    this.toast('تراکنش تکراری تعریف شد', 'success');
+  },
+
+  deleteRecurring(id) {
+    if (!confirm('حذف این تراکنش تکراری؟ تراکنش‌های قبلی ایجاد شده حذف نمی‌شوند.')) return;
+    Store.deleteRecurring(id);
+    Render.renderRecurringList();
+    this.toast('تراکنش تکراری حذف شد', 'success');
+  },
+
+  toggleRecurring(id) {
+    Store.toggleRecurring(id);
+    Render.renderRecurringList();
+  },
+
+  // ==================== Yearly Reports ====================
+  changeReportYear(delta) {
+    if (!this.reportYear) this.reportYear = JalaliDate.today()[0];
+    this.reportYear += delta;
+    document.getElementById('reportYearLabel').innerText = Render.toPersian(this.reportYear);
+    this.renderReportContent();
+  },
+
+  switchReportTab(tab) {
+    this.reportTab = tab;
+    // Update active button
+    ['summary', 'income-expense', 'incomes', 'expenses'].forEach(t => {
+      const btn = document.getElementById(`rpt-tab-${t}`);
+      if (btn) {
+        if (t === tab) {
+          btn.classList.add('bg-teal-800', 'text-white');
+          btn.classList.remove('text-slate-600', 'hover:bg-slate-50');
+        } else {
+          btn.classList.remove('bg-teal-800', 'text-white');
+          btn.classList.add('text-slate-600', 'hover:bg-slate-50');
+        }
+      }
+    });
+    this.renderReportContent();
+  },
+
+  renderReportContent() {
+    if (!this.reportYear) this.reportYear = JalaliDate.today()[0];
+    document.getElementById('reportYearLabel').innerText = Render.toPersian(this.reportYear);
+    Render.renderYearlyReport(this.reportYear, this.reportTab);
+  },
+
+  // ==================== Help Topics ====================
+  openHelpTopic(topic) {
+    const titles = {
+      transactions: 'چگونه تراکنش‌ها را ثبت و مدیریت کنیم؟',
+      reports: 'چگونه گزارش‌ها و نمودارها را مشاهده کنیم؟',
+      categories: 'چگونه دسته‌ها و زیردسته‌ها را مدیریت کنیم؟',
+      recurring: 'چگونه تراکنش‌های تکراری را تنظیم کنیم؟',
+      budgets: 'چگونه بودجه ماهانه تعریف کنیم؟',
+      backup: 'پشتیبان‌گیری و بازگردانی داده‌ها',
+      faq: 'سوالات متداول (FAQ)'
+    };
+    document.getElementById('helpTopicTitle').innerText = titles[topic] || 'راهنما';
+    document.getElementById('helpTopicContent').innerHTML = Render.getHelpContent(topic);
+    document.getElementById('helpTopicModal').classList.remove('hidden');
   }
 };
 
