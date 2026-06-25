@@ -108,7 +108,7 @@ Zarbin/
 ├── scripts/
 │   ├── server.js           # Local static server (port 3000)
 │   ├── start-server.sh     # Server start helper
-│   └── generate-icons.py   # Legacy SVG icon generator
+│   └── optimize-images.py  # Image optimization (PNG→WebP, strip metadata)
 ├── docs/
 │   ├── SETUP-CICD.md       # GitHub Actions setup guide
 │   └── github-actions-workflow.yml.md
