@@ -3,7 +3,7 @@
 > **حسابدار هوشمند شخصی** — A Persian (Farsi, RTL) personal finance accountant app, packaged as a cross-platform web app and Android APK via Capacitor.
 
 [![Build APK](https://github.com/SonaMother/Zarbin/actions/workflows/build-apk.yml/badge.svg)](https://github.com/SonaMother/Zarbin/actions/workflows/build-apk.yml)
-[![Version](https://img.shields.io/badge/version-1.1.0-14b8a6)](https://github.com/SonaMother/Zarbin/releases)
+[![Version](https://img.shields.io/badge/version-1.2.0-14b8a6)](https://github.com/SonaMother/Zarbin/releases)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20Web%20%7C%20PWA-0c322c)](https://github.com/SonaMother/Zarbin)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -31,7 +31,7 @@
 ### Option A: Install APK on Android
 
 1. Go to [Releases](https://github.com/SonaMother/Zarbin/releases)
-2. Download the latest `zarbin-v1.1.0.apk`
+2. Download the latest `zarbin-v1.2.0.apk`
 3. On your Android phone, enable **"Install unknown apps"** for your browser
 4. Tap the downloaded APK file and confirm installation
 5. On first launch, choose **Demo Mode** to explore or **Clean Mode** for real use
@@ -144,7 +144,8 @@ The app is **100% Persian (Farsi)** with RTL layout. Numbers are displayed in Pe
 
 | Version | Date | Notes |
 |---------|------|-------|
-| v1.1.0 | 2026-06-27 | AI-generated art, Demo/Clean mode prompt, mode switcher in settings, transfer transaction fix, dev server script |
+| v1.2.0 | 2026-06-28 | Production-ready: 83% smaller APK (5.9 MB), transfer fix, image optimization (WebP), resource shrinking |
+| v1.1.0 | 2026-06-27 | AI-generated art, Demo/Clean mode prompt, mode switcher in settings, dev server script |
 | v1.0.0 | 2026-06-26 | Initial public release |
 
 The version number is always visible in the top header (next to the "زرین" brand) and in the sidebar footer.
