@@ -3,8 +3,8 @@
    مدیریت حالت و ذخیره‌سازی
    ============================================ */
 
-const APP_VERSION = '1.1.0';
-const APP_BUILD = '20260627';
+const APP_VERSION = '1.2.0';
+const APP_BUILD = '20260628';
 const STORAGE_KEY = 'zarbin_state_v1';
 const FIRST_RUN_KEY = 'zarbin_first_run_done';
 
@@ -222,12 +222,16 @@ const Store = {
   deleteTransaction(id) {
     const tx = this.state.transactions.find(t => t.id === id);
     if (tx) {
-      // Reverse the account effect
+      // Reverse the account effect on source account
       if (tx.type === 'income') {
         this.state.accounts[tx.account] -= tx.amount;
       } else {
         // expense, other, transfer all reduce source balance
         this.state.accounts[tx.account] += tx.amount;
+      }
+      // For transfers: also reverse the destination credit
+      if (tx.type === 'transfer' && tx.destAccount && this.state.accounts[tx.destAccount] !== undefined) {
+        this.state.accounts[tx.destAccount] -= tx.amount;
       }
       this.state.transactions = this.state.transactions.filter(t => t.id !== id);
       this.save();

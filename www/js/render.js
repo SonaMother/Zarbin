@@ -104,7 +104,7 @@ const Render = {
       list.innerHTML = `
         <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 animate-fade-in">
           <div class="w-32 h-32 mb-3 rounded-2xl overflow-hidden bg-teal-50 border border-teal-100 shadow-inner">
-            <img src="assets/art/empty-state.png" alt="خالی" class="w-full h-full object-cover opacity-80" />
+            <img src="assets/art/empty-state.webp" alt="خالی" class="w-full h-full object-cover opacity-80" />
           </div>
           <p class="text-sm font-bold mb-1">تراکنشی برای این روز ثبت نشده است</p>
           <p class="text-[11px] text-slate-400">برای ثبت تراکنش جدید از دکمه + استفاده کنید.</p>

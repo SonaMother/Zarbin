@@ -160,17 +160,24 @@ const App = {
     this.toggleFabMenu();
     // Ensure dropdown reflects current accounts
     this.populateSourceAccounts();
+    this.populateDestAccounts();
 
     const subpage = document.getElementById('formSubpage');
     const title = document.getElementById('formTitle');
     const label = document.getElementById('formAccountLabel');
     const amtLabel = document.getElementById('formAmountLabel');
     const typeLabel = document.getElementById('formTypeLabel');
+    const destWrapper = document.getElementById('formDestAccountWrapper');
 
     subpage.classList.remove('translate-x-full');
     title.innerText = `ثبت تراکنش ${type}`;
     label.innerText = type === 'دریافت' ? 'واریز به حساب' : 'برداشت از حساب';
     amtLabel.innerText = Store.state.baseCurrency;
+
+    // Show destination account selector only for transfers
+    if (destWrapper) {
+      destWrapper.classList.toggle('hidden', type !== 'انتقال');
+    }
 
     // Set type hidden field
     if (typeLabel) {
@@ -208,6 +215,7 @@ const App = {
     const note = document.getElementById('formNote').value;
     const fee = parseInt(document.getElementById('formFee').value || '0');
     const title = document.getElementById('formTitle').innerText;
+    const destAcc = document.getElementById('formDestAccount')?.value;
 
     let type = 'expense';
     let icon = 'fa-tag';
@@ -226,6 +234,15 @@ const App = {
       icon = 'fa-people-group';
       color = 'bg-amber-500';
     } else if (title.includes('انتقال')) {
+      // Validate destination account
+      if (!destAcc) {
+        this.toast('حساب مقصد را انتخاب کنید', 'error');
+        return;
+      }
+      if (destAcc === acc) {
+        this.toast('حساب مبدا و مقصد نمی‌توانند یکسان باشند', 'error');
+        return;
+      }
       type = 'transfer';
       icon = 'fa-right-left';
       color = 'bg-slate-700';
@@ -245,8 +262,16 @@ const App = {
       note: note || ''
     };
     if (type === 'other') tx.unsettled = true;
+    if (type === 'transfer' && destAcc) tx.destAccount = destAcc;
 
     Store.addTransaction(tx);
+
+    // For transfers: also credit the destination account
+    if (type === 'transfer' && destAcc && Store.state.accounts[destAcc] !== undefined) {
+      Store.state.accounts[destAcc] += amt;
+      Store.save();
+    }
+
     this.closeFormSubpage();
     Render.renderDashboard();
     this.toast('تراکنش با موفقیت ثبت شد', 'success');
@@ -586,6 +611,22 @@ const App = {
     sel.value = Store.state.activeAccount;
   },
 
+  populateDestAccounts() {
+    const sel = document.getElementById('formDestAccount');
+    if (!sel) return;
+    sel.innerHTML = '';
+    Object.keys(Store.state.accounts).forEach(acc => {
+      const opt = document.createElement('option');
+      opt.value = acc;
+      opt.textContent = acc;
+      sel.appendChild(opt);
+    });
+    // Default to a different account than source
+    const sourceAcc = Store.state.activeAccount;
+    const others = Object.keys(Store.state.accounts).filter(a => a !== sourceAcc);
+    if (others.length) sel.value = others[0];
+  },
+
   // ==================== Transaction Details ====================
   showTransactionDetails(id) {
     const tx = Store.state.transactions.find(t => t.id === id);
@@ -594,8 +635,8 @@ const App = {
     document.getElementById('txDetailsCategory').innerText = tx.category;
     document.getElementById('txDetailsAmount').innerText = Render.formatWithCurrency(tx.amount);
     document.getElementById('txDetailsDate').innerText = `${Render.formatDate(tx.date)} ${Render.formatTime(tx.time || '')}`;
-    document.getElementById('txDetailsAccount').innerText = tx.account;
-    document.getElementById('txDetailsType').innerText = tx.type === 'expense' ? 'هزینه' : tx.type === 'income' ? 'درآمد' : 'سایر';
+    document.getElementById('txDetailsAccount').innerText = tx.account + (tx.destAccount ? ` ← ${tx.destAccount}` : '');
+    document.getElementById('txDetailsType').innerText = tx.type === 'expense' ? 'هزینه' : tx.type === 'income' ? 'درآمد' : tx.type === 'transfer' ? 'انتقال' : 'سایر';
     document.getElementById('txDetailsNote').innerText = tx.note || '—';
     document.getElementById('txDetailsBalance').innerText = Render.formatMoney(tx.balance || 0);
     modal.dataset.txId = id;
