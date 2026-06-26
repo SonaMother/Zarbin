@@ -46,13 +46,14 @@ const Render = {
     const list = document.getElementById('transactionsList');
     if (!list) return;
 
-    const selDate = state.selectedDate;
-    // Filter transactions by active account AND selected date
-    const visibleTx = state.transactions.filter(t => t.account === state.activeAccount && t.date === selDate);
+    // Use App.getFilteredTransactions() — respects search + filters.
+    // When no filters active, returns only txs for activeAccount + selectedDate.
+    const filtering = App.isFilteringActive();
+    const visibleTx = App.getFilteredTransactions();
 
     let itemsCount = visibleTx.length;
     let totalExpense = 0, totalIncome = 0, totalOther = 0;
-    const categories = { expense: [], other: [], income: [] };
+    const categories = { expense: [], other: [], income: [], transfer: [] };
 
     visibleTx.forEach(t => {
       if (t.type === 'expense') {
@@ -61,14 +62,24 @@ const Render = {
       } else if (t.type === 'income') {
         totalIncome += t.amount;
         categories.income.push(t);
+      } else if (t.type === 'transfer') {
+        categories.transfer.push(t);
       } else {
         totalOther += t.amount;
         categories.other.push(t);
       }
     });
 
-    // Build the day picker
-    this.renderDayPicker();
+    // Build the day picker (hidden when filtering — irrelevant)
+    const dayPicker = document.getElementById('dayPickerContainer');
+    if (dayPicker) dayPicker.style.display = filtering ? 'none' : 'flex';
+    if (!filtering) this.renderDayPicker();
+
+    // Update summary card label
+    const sumLabel = document.querySelector('#view-main .bg-appMediumTeal span.font-bold');
+    if (sumLabel) {
+      sumLabel.innerText = filtering ? 'مجموع نتایج جستجو' : 'مجموع تراکنش‌های روز';
+    }
 
     // Build transaction sections
     const renderSection = (title, transList) => {
@@ -79,18 +90,23 @@ const Render = {
       transList.forEach(t => {
         const unsettledBadge = t.unsettled ? `<span class="text-[9px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded mr-1">تسویه نشده</span>` : '';
         const noteLine = t.note ? `<span class="text-[10px] text-slate-400 block">${this.escapeHtml(t.note)}</span>` : '';
+        const accLine = filtering ? `<span class="text-[10px] text-slate-400 block">${this.escapeHtml(t.account)}${t.destAccount ? ' ← ' + this.escapeHtml(t.destAccount) : ''}</span>` : '';
+        const dateLine = filtering
+          ? `<span class="text-[10px] text-slate-400 block">${this.formatDate(t.date)} · ${this.formatTime(t.time || '')}</span>`
+          : `<span class="text-[10px] text-slate-400 block">${this.formatTime(t.time || '')} · ${this.formatDate(t.date)}</span>`;
         html += `
-          <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 hover:bg-slate-50/50 transition-all shadow-sm animate-slide-up" onclick="App.showTransactionDetails(${t.id})">
+          <div class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 hover:bg-slate-50/50 transition-all shadow-sm animate-slide-up" onclick="App.showTransactionDetails('${t.id}')">
             <div class="flex items-center gap-3 flex-1">
               <span class="w-9 h-9 rounded-full ${t.color} text-white flex items-center justify-center text-sm shadow-md shrink-0"><i class="fa-solid ${t.icon}"></i></span>
               <div class="flex-1 min-w-0">
                 <span class="text-xs font-bold block text-slate-800 truncate">${this.escapeHtml(t.category)} ${unsettledBadge}</span>
                 ${noteLine}
-                <span class="text-[10px] text-slate-400 block">${this.formatTime(t.time || '')} · ${this.formatDate(t.date)}</span>
+                ${accLine}
+                ${dateLine}
               </div>
             </div>
             <div class="text-left space-y-0.5 mr-2">
-              <span class="text-xs font-black block ${t.type === 'income' ? 'text-emerald-600' : t.type === 'expense' ? 'text-slate-800' : 'text-amber-600'}">${t.type === 'income' ? '+' : t.type === 'expense' ? '−' : ''}${this.formatMoney(t.amount)}</span>
+              <span class="text-xs font-black block ${t.type === 'income' ? 'text-emerald-600' : t.type === 'expense' ? 'text-slate-800' : t.type === 'transfer' ? 'text-slate-600' : 'text-amber-600'}">${t.type === 'income' ? '+' : t.type === 'expense' ? '−' : ''}${this.formatMoney(t.amount)}</span>
               <span class="text-[10px] text-slate-400 block font-bold">مانده: ${this.formatMoney(t.balance || 0)}</span>
             </div>
           </div>
@@ -101,19 +117,26 @@ const Render = {
     };
 
     if (itemsCount === 0) {
+      const emptyMsg = filtering
+        ? 'نتیجه‌ای برای جستجوی شما یافت نشد'
+        : 'تراکنشی برای این روز ثبت نشده است';
+      const emptySub = filtering
+        ? 'فیلترها را تغییر دهید یا عبارت دیگری جستجو کنید.'
+        : 'برای ثبت تراکنش جدید از دکمه + استفاده کنید.';
       list.innerHTML = `
         <div class="flex flex-col items-center justify-center py-12 text-center text-slate-400 animate-fade-in">
           <div class="w-32 h-32 mb-3 rounded-2xl overflow-hidden bg-teal-50 border border-teal-100 shadow-inner">
             <img src="assets/art/empty-state.webp" alt="خالی" class="w-full h-full object-cover opacity-80" />
           </div>
-          <p class="text-sm font-bold mb-1">تراکنشی برای این روز ثبت نشده است</p>
-          <p class="text-[11px] text-slate-400">برای ثبت تراکنش جدید از دکمه + استفاده کنید.</p>
+          <p class="text-sm font-bold mb-1">${emptyMsg}</p>
+          <p class="text-[11px] text-slate-400">${emptySub}</p>
         </div>
       `;
     } else {
       list.innerHTML = '';
       list.innerHTML += renderSection('هزینه', categories.expense);
       list.innerHTML += renderSection('درآمد', categories.income);
+      list.innerHTML += renderSection('انتقال', categories.transfer);
       list.innerHTML += renderSection('سایر', categories.other);
     }
 
@@ -155,23 +178,56 @@ const Render = {
       // Calculate weekday: convert Jalali date to Gregorian, then getDay()
       const [gy, gm, gd] = JalaliDate.jalaliToGregorian(jy, jm, day);
       const weekday = new Date(gy, gm - 1, gd).getDay();
-      // Convert Sunday=0 to Saturday=0
+      // Convert Sunday=0 to Saturday=0; Persian week starts Saturday.
+      // Friday is persianWeekday === 6 (index 6 in ['ش','ی','د','س','چ','پ','ج'])
       const persianWeekday = (weekday + 1) % 7;
-
-      const classes = isSelected
-        ? 'bg-appDarkTeal text-white rounded-full shadow-md'
-        : isToday
-          ? 'bg-teal-100 text-teal-800 rounded-lg font-bold'
-          : 'text-slate-500 hover:bg-slate-100 rounded-lg';
+      const isFriday = persianWeekday === 6;
+      // Check if this is a Persian holiday
       const dateStr = `${jy}/${String(jm).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+      const holiday = this.getPersianHoliday(jy, jm, day);
+
+      let classes;
+      if (isSelected) {
+        classes = 'bg-appDarkTeal text-white rounded-full shadow-md';
+      } else if (isToday) {
+        classes = 'bg-teal-100 text-teal-800 rounded-lg font-bold';
+      } else if (holiday) {
+        classes = 'text-red-600 hover:bg-red-50 rounded-lg';
+      } else if (isFriday) {
+        classes = 'text-red-400 hover:bg-slate-100 rounded-lg';
+      } else {
+        classes = 'text-slate-500 hover:bg-slate-100 rounded-lg';
+      }
+      const weekdayClass = (isFriday || holiday) && !isSelected ? 'text-red-400' : '';
       html += `
-        <div onclick="App.selectDay('${dateStr}')" class="text-center w-10 py-1 cursor-pointer transition-all ${classes}">
-          <span class="block text-[10px] opacity-70">${JALALI_WEEKDAYS[persianWeekday]}</span>
+        <div onclick="App.selectDay('${dateStr}')" class="text-center w-10 py-1 cursor-pointer transition-all ${classes}" ${holiday ? `title="${this.escapeHtml(holiday)}"` : ''}>
+          <span class="block text-[10px] opacity-70 ${weekdayClass}">${JALALI_WEEKDAYS[persianWeekday]}</span>
           <span class="text-xs font-bold">${this.toPersian(day)}</span>
         </div>
       `;
     }
     container.innerHTML = html;
+  },
+
+  // Returns the holiday name for a given Jalali date, or null if not a holiday.
+  // Includes major Iranian public holidays (fixed) + Islamic holidays (approximate).
+  getPersianHoliday(jy, jm, jd) {
+    // Fixed Jalali-date holidays
+    const fixed = {
+      '1/1': 'نوروز',
+      '1/2': 'نوروز',
+      '1/3': 'نوروز',
+      '1/4': 'نوروز',
+      '1/12': 'روز جمهوری اسلامی',
+      '1/13': 'سیزده‌بدر',
+      '3/14': 'رحلت امام خمینی',
+      '3/15': 'قیام ۱۵ خرداد',
+      '11/22': 'پیروزی انقلاب اسلامی',
+      '12/29': 'ملی شدن صنعت نفت'
+    };
+    const key = `${jm}/${jd}`;
+    if (fixed[key]) return fixed[key];
+    return null;
   },
 
   // ==================== Debts Chart ====================
@@ -692,8 +748,18 @@ const Render = {
     const summary = Store.getYearlySummary(jy);
     const monthly = Store.getMonthlySummaries(jy);
 
+    // Fiscal-year banner — Iran's fiscal year starts 1 Farvardin (March 21)
+    const fiscalYearBanner = `
+      <div class="bg-teal-50 border border-teal-100 rounded-lg p-2.5 mb-3 text-[10px] text-teal-700 leading-relaxed">
+        <i class="fa-solid fa-calendar-days ml-1"></i>
+        <b>سال مالی ${this.toPersian(jy)}</b> · از ${this.toPersian('01')}/${this.toPersian('01')}/${this.toPersian(jy)}
+        تا ${this.toPersian('12')}/${this.toPersian('29')}/${this.toPersian(jy)}
+        <br><span class="text-teal-600/70">سال مالی ایران از ۱ فروردین شروع می‌شود (معادل ۲۱ مارس).</span>
+      </div>
+    `;
+
     if (tab === 'summary') {
-      container.innerHTML = `
+      container.innerHTML = fiscalYearBanner + `
         <div class="grid grid-cols-2 gap-2 mb-4">
           <div class="bg-emerald-50 p-3 rounded-lg">
             <span class="text-[10px] text-emerald-700 block">کل درآمد</span>
@@ -725,7 +791,7 @@ const Render = {
       const typeFilter = tab === 'incomes' ? 'income' : tab === 'expenses' ? 'expense' : null;
       const txs = Store.getYearlyTransactions(jy, typeFilter);
       if (!txs.length) {
-        container.innerHTML = `
+        container.innerHTML = fiscalYearBanner + `
           <div class="text-center py-12 text-slate-400">
             <i class="fa-solid fa-folder-open text-3xl mb-3 opacity-40"></i>
             <p class="text-xs font-bold">تراکنشی برای این سال ثبت نشده</p>
@@ -740,7 +806,7 @@ const Render = {
         if (!byMonth[m]) byMonth[m] = [];
         byMonth[m].push(t);
       });
-      let html = `<div class="space-y-3">`;
+      let html = fiscalYearBanner + `<div class="space-y-3">`;
       for (let m = 1; m <= 12; m++) {
         if (!byMonth[m]) continue;
         const monthTx = byMonth[m];
@@ -940,6 +1006,310 @@ const Render = {
       `
     };
     return contents[topic] || '<p>محتوای راهنما در دسترس نیست.</p>';
+  },
+
+  // ==================== Cheque List ====================
+  renderChequeList(tab) {
+    const container = document.getElementById('chequeListContainer');
+    if (!container) return;
+    const cheques = Store.state.cheques || [];
+    let list;
+    if (tab === 'upcoming') {
+      list = Store.getUpcomingCheques(30);
+    } else {
+      list = cheques.filter(c => c.type === tab);
+    }
+    if (!list.length) {
+      container.innerHTML = `
+        <div class="text-center py-12 text-slate-400">
+          <i class="fa-solid fa-money-check-dollar text-4xl mb-3 opacity-40"></i>
+          <p class="text-xs font-bold">${tab === 'upcoming' ? 'هیچ سررسید نزدیکی وجود ندارد' : 'چکی ثبت نشده'}</p>
+          <p class="text-[10px] mt-1">برای افزودن، دکمه + را بزنید.</p>
+        </div>
+      `;
+      return;
+    }
+    const statusMap = {
+      registered: { label: 'ثبت شده', class: 'bg-blue-100 text-blue-700' },
+      cashed:     { label: 'وصول شد', class: 'bg-emerald-100 text-emerald-700' },
+      bounced:    { label: 'برگشت خورد', class: 'bg-red-100 text-red-700' },
+      endorsed:   { label: 'واگذار شد', class: 'bg-amber-100 text-amber-700' },
+      cancelled:  { label: 'ابطال شد', class: 'bg-slate-100 text-slate-600' }
+    };
+    container.innerHTML = list.map(c => {
+      const st = statusMap[c.status] || statusMap.registered;
+      const isReceived = c.type === 'received';
+      const amountColor = isReceived ? 'text-emerald-600' : 'text-red-600';
+      const actions = c.status === 'registered' ? `
+        <div class="flex gap-1 pt-1">
+          <button onclick="App.cashCheque('${c.id}')" class="flex-1 py-1.5 bg-emerald-600 text-white rounded-md text-[10px] font-bold">وصول</button>
+          <button onclick="App.bounceCheque('${c.id}')" class="flex-1 py-1.5 bg-red-50 text-red-600 rounded-md text-[10px] font-bold">برگشت</button>
+          <button onclick="App.deleteCheque('${c.id}')" class="px-2 py-1.5 bg-slate-100 text-slate-500 rounded-md text-[10px]"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      ` : `
+        <div class="pt-1">
+          <button onclick="App.deleteCheque('${c.id}')" class="w-full py-1.5 bg-slate-100 text-slate-500 rounded-md text-[10px] font-bold">حذف</button>
+        </div>
+      `;
+      return `
+        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-xs font-bold block">${this.escapeHtml(c.bank)} ${c.chequeNumber ? `· ${this.toPersian(c.chequeNumber)}` : ''}</span>
+              <span class="text-[10px] text-slate-400 block">${this.escapeHtml(c.payee || '—')}</span>
+            </div>
+            <span class="text-[9px] ${st.class} px-2 py-0.5 rounded font-bold">${st.label}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] text-slate-500">سررسید: <b>${this.formatDate(c.dueDate)}</b></span>
+            <span class="text-sm font-black ${amountColor}">${this.formatMoney(c.amount)}</span>
+          </div>
+          ${c.sayadiSerial ? `<div class="text-[9px] text-slate-400">صیادی: ${this.toPersian(c.sayadiSerial)}</div>` : ''}
+          ${c.note ? `<div class="text-[10px] text-slate-500 border-t pt-1">${this.escapeHtml(c.note)}</div>` : ''}
+          ${actions}
+        </div>
+      `;
+    }).join('');
+  },
+
+  // ==================== Loan List ====================
+  renderLoanList() {
+    const container = document.getElementById('loanListContainer');
+    if (!container) return;
+    const loans = Store.state.loans || [];
+    if (!loans.length) {
+      container.innerHTML = `
+        <div class="text-center py-12 text-slate-400">
+          <i class="fa-solid fa-hand-holding-dollar text-4xl mb-3 opacity-40"></i>
+          <p class="text-xs font-bold">وامی ثبت نشده</p>
+          <p class="text-[10px] mt-1">برای افزودن، دکمه + را بزنید.</p>
+        </div>
+      `;
+      return;
+    }
+    container.innerHTML = loans.map(l => {
+      const paid = l.installments.filter(i => i.status === 'paid').length;
+      const total = l.installments.length;
+      const pct = total > 0 ? Math.round((paid / total) * 100) : 0;
+      const typeLabel = l.type === 'received' ? 'دریافتی' : 'پرداختی';
+      const typeColor = l.type === 'received' ? 'text-emerald-600 bg-emerald-50' : 'text-rose-600 bg-rose-50';
+      const totalInterest = l.installments.reduce((s, i) => s + i.interestPart, 0);
+      const totalPayable = l.installments.reduce((s, i) => s + i.amount, 0);
+      return `
+        <div onclick="App.openLoanDetail('${l.id}')" class="bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm cursor-pointer hover:bg-slate-50 transition">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <span class="text-xs font-bold block">${this.escapeHtml(l.counterparty)}</span>
+              <span class="text-[10px] ${typeColor} px-1.5 py-0.5 rounded">وام ${typeLabel}</span>
+            </div>
+            <span class="text-xs font-black ${l.type === 'received' ? 'text-emerald-600' : 'text-rose-600'}">${this.formatMoney(l.principal)}</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1 text-[10px] text-slate-500 mb-2">
+            <div>مدت: <b>${this.toPersian(l.termMonths)} ماه</b></div>
+            <div>سود: <b>${this.toPersian(l.annualInterestRate)}٪</b></div>
+            <div>قسط: <b>${this.formatMoney(l.installments[0]?.amount || 0)}</b></div>
+          </div>
+          <div class="flex justify-between text-[10px] mb-1">
+            <span class="text-slate-500">پرداخت شده: ${this.toPersian(paid)}/${this.toPersian(total)}</span>
+            <span class="text-slate-700 font-bold">${this.toPersian(pct)}٪</span>
+          </div>
+          <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+            <div class="bg-teal-600 h-full" style="width:${pct}%"></div>
+          </div>
+          ${l.status === 'completed' ? '<div class="text-[10px] text-emerald-600 font-bold mt-1">✓ تکمیل شده</div>' : ''}
+        </div>
+      `;
+    }).join('');
+  },
+
+  renderLoanDetail(id) {
+    const loan = Store.state.loans.find(l => l.id === id);
+    if (!loan) return;
+    document.getElementById('loanDetailTitle').innerText = `وام ${loan.type === 'received' ? 'دریافتی' : 'پرداختی'} - ${loan.counterparty}`;
+    const paid = loan.installments.filter(i => i.status === 'paid').length;
+    const total = loan.installments.length;
+    const totalPayable = loan.installments.reduce((s, i) => s + i.amount, 0);
+    const totalInterest = loan.installments.reduce((s, i) => s + i.interestPart, 0);
+    const rows = loan.installments.map(i => `
+      <tr class="${i.status === 'paid' ? 'bg-emerald-50' : 'bg-white'}">
+        <td class="p-1.5 text-center font-bold">${this.toPersian(i.number)}</td>
+        <td class="p-1.5 text-center">${this.formatDate(i.dueDate)}</td>
+        <td class="p-1.5 text-left">${this.formatMoney(i.amount)}</td>
+        <td class="p-1.5 text-left text-[10px] text-slate-500">${this.formatMoney(i.principalPart)}+${this.formatMoney(i.interestPart)}</td>
+        <td class="p-1.5 text-center">
+          ${i.status === 'paid'
+            ? `<span class="text-emerald-600 text-[10px] font-bold">پرداخت شد</span><br><span class="text-[9px] text-slate-400">${this.formatDate(i.paidDate)}</span>`
+            : `<button onclick="App.payInstallment('${loan.id}','${i.id}')" class="bg-teal-700 text-white px-2 py-1 rounded text-[10px] font-bold">پرداخت</button>`
+          }
+        </td>
+      </tr>
+    `).join('');
+    document.getElementById('loanDetailContent').innerHTML = `
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <div class="bg-slate-50 p-2 rounded-lg"><div class="text-[10px] text-slate-500">اصل وام</div><div class="text-sm font-bold">${this.formatMoney(loan.principal)}</div></div>
+        <div class="bg-slate-50 p-2 rounded-lg"><div class="text-[10px] text-slate-500">سود کل</div><div class="text-sm font-bold text-amber-600">${this.formatMoney(totalInterest)}</div></div>
+        <div class="bg-slate-50 p-2 rounded-lg"><div class="text-[10px] text-slate-500">مبلغ قابل پرداخت</div><div class="text-sm font-bold text-red-600">${this.formatMoney(totalPayable)}</div></div>
+        <div class="bg-slate-50 p-2 rounded-lg"><div class="text-[10px] text-slate-500">پیشرفت</div><div class="text-sm font-bold text-teal-700">${this.toPersian(paid)}/${this.toPersian(total)}</div></div>
+      </div>
+      <table class="w-full text-[11px] border-collapse">
+        <thead><tr class="bg-slate-100 text-slate-600"><th class="p-1.5">#</th><th>سررسید</th><th>قسط</th><th>اصل+سود</th><th>وضعیت</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <button onclick="App.deleteLoan('${loan.id}'); App.closeModal('loanDetailModal');" class="w-full mt-3 py-2 bg-red-50 text-red-600 rounded-lg text-xs font-bold">حذف وام</button>
+    `;
+    document.getElementById('loanDetailModal').classList.remove('hidden');
+  },
+
+  // ==================== Person List ====================
+  renderPersonList() {
+    const container = document.getElementById('personListContainer');
+    if (!container) return;
+    const persons = Store.state.persons || [];
+    if (!persons.length) {
+      container.innerHTML = `
+        <div class="text-center py-12 text-slate-400">
+          <i class="fa-solid fa-users text-4xl mb-3 opacity-40"></i>
+          <p class="text-xs font-bold">شخصی ثبت نشده</p>
+          <p class="text-[10px] mt-1">برای افزودن، دکمه + را بزنید.</p>
+        </div>
+      `;
+      return;
+    }
+    const relMap = { family: 'خانواده', friend: 'دوست', colleague: 'همکار', business: 'شریک تجاری', other: 'سایر' };
+    container.innerHTML = persons.map(p => {
+      const balance = Store.getPersonBalance(p.id);
+      const balColor = balance > 0 ? 'text-emerald-600' : balance < 0 ? 'text-red-600' : 'text-slate-500';
+      const balLabel = balance > 0 ? 'طلب شما' : balance < 0 ? 'بدهی شما' : 'تسویه';
+      return `
+        <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+          <div class="flex justify-between items-start">
+            <div class="flex items-center gap-2">
+              <span class="w-9 h-9 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-bold">${this.escapeHtml((p.name||'?')[0])}</span>
+              <div>
+                <span class="text-xs font-bold block">${this.escapeHtml(p.name)}</span>
+                <span class="text-[10px] text-slate-400 block">${relMap[p.relationship] || 'سایر'}${p.phone ? ' · ' + this.toPersian(p.phone) : ''}</span>
+              </div>
+            </div>
+            <div class="text-left">
+              <span class="text-xs font-black ${balColor} block">${this.formatMoney(Math.abs(balance))}</span>
+              <span class="text-[9px] text-slate-400 block">${balLabel}</span>
+            </div>
+          </div>
+          ${p.note ? `<div class="text-[10px] text-slate-500 mt-1 border-t pt-1">${this.escapeHtml(p.note)}</div>` : ''}
+          <button onclick="App.deletePerson('${p.id}')" class="w-full mt-2 py-1 bg-red-50 text-red-600 rounded text-[10px] font-bold">حذف</button>
+        </div>
+      `;
+    }).join('');
+  },
+
+  // ==================== Custom Range Report ====================
+  renderCustomRangeReport(from, to) {
+    const container = document.getElementById('customRangeContent');
+    if (!container) return;
+    const summary = Store.getRangeSummary(from, to);
+    const txs = Store.getTransactionsInRange(from, to);
+    container.innerHTML = `
+      <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+        <div class="grid grid-cols-2 gap-2 mb-3">
+          <div class="bg-emerald-50 p-2 rounded-lg">
+            <div class="text-[10px] text-emerald-700">درآمد</div>
+            <div class="text-sm font-black text-emerald-700">${this.formatMoney(summary.income)}</div>
+          </div>
+          <div class="bg-red-50 p-2 rounded-lg">
+            <div class="text-[10px] text-red-700">هزینه</div>
+            <div class="text-sm font-black text-red-700">${this.formatMoney(summary.expense)}</div>
+          </div>
+          <div class="bg-teal-50 p-2 rounded-lg">
+            <div class="text-[10px] text-teal-700">پس‌انداز</div>
+            <div class="text-sm font-black ${summary.savings>=0?'text-teal-700':'text-red-700'}">${this.formatMoney(summary.savings)}</div>
+          </div>
+          <div class="bg-amber-50 p-2 rounded-lg">
+            <div class="text-[10px] text-amber-700">تعداد تراکنش</div>
+            <div class="text-sm font-black text-amber-700">${this.toPersian(summary.count)}</div>
+          </div>
+        </div>
+        <div class="text-[10px] text-slate-500 text-center mb-2">از ${this.formatDate(from)} تا ${this.formatDate(to)}</div>
+      </div>
+      <div class="bg-white p-2 rounded-xl border border-slate-100">
+        <h4 class="text-xs font-bold text-slate-700 mb-2 px-1">تراکنش‌های این بازه</h4>
+        <div class="space-y-1.5 max-h-64 overflow-y-auto slim-scroll">
+          ${txs.length === 0 ? '<div class="text-center text-[11px] text-slate-400 py-4">تراکنشی نیست</div>' :
+            txs.map(t => `
+              <div class="flex justify-between items-center text-[11px] p-1.5 border-b border-slate-50">
+                <div>
+                  <span class="font-bold">${this.escapeHtml(t.category)}</span>
+                  <span class="text-[9px] text-slate-400 block">${this.formatDate(t.date)} · ${this.escapeHtml(t.account)}</span>
+                </div>
+                <span class="font-bold ${t.type==='income'?'text-emerald-600':t.type==='expense'?'text-red-600':'text-amber-600'}">${t.type==='income'?'+':t.type==='expense'?'−':''}${this.formatMoney(t.amount)}</span>
+              </div>
+            `).join('')
+          }
+        </div>
+      </div>
+    `;
+  },
+
+  // ==================== Balance Sheet ====================
+  renderBalanceSheet() {
+    const container = document.getElementById('balanceSheetContent');
+    if (!container) return;
+    const accounts = Store.state.accounts;
+    const meta = Store.state.accountMeta || {};
+    let totalAssets = 0, totalLiabilities = 0;
+    const assets = [], liabilities = [];
+    Object.keys(accounts).forEach(name => {
+      const bal = accounts[name];
+      if (bal >= 0) {
+        assets.push({ name, balance: bal, meta: meta[name] || {} });
+        totalAssets += bal;
+      } else {
+        liabilities.push({ name, balance: Math.abs(bal), meta: meta[name] || {} });
+        totalLiabilities += Math.abs(bal);
+      }
+    });
+    // Also count unsettled loans given as assets ( receivables)
+    const unsettled = (Store.state.transactions || []).filter(t => t.unsettled && t.type === 'other');
+    const totalReceivables = unsettled.reduce((s, t) => s + t.amount, 0);
+
+    const renderAccountRow = (a) => `
+      <div class="flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 text-[11px]">
+        <div class="flex items-center gap-2">
+          <span class="w-7 h-7 rounded-full ${a.meta.type==='cash'?'bg-teal-100 text-teal-700':'bg-blue-100 text-blue-700'} flex items-center justify-center"><i class="fa-solid ${a.meta.type==='cash'?'fa-wallet':'fa-building-columns'} text-[10px]"></i></span>
+          <span class="font-bold">${this.escapeHtml(a.name)}</span>
+        </div>
+        <span class="font-bold text-slate-700">${this.formatMoney(a.balance)}</span>
+      </div>
+    `;
+    const netWorth = totalAssets - totalLiabilities;
+    container.innerHTML = `
+      <div class="bg-gradient-to-l from-teal-800 to-teal-900 text-white p-4 rounded-xl shadow-md text-center">
+        <div class="text-[10px] opacity-75">دارایی خالص (Net Worth)</div>
+        <div class="text-2xl font-black mt-1">${this.formatMoney(netWorth)}</div>
+        <div class="text-[10px] opacity-60 mt-1">دارایی ${this.formatMoney(totalAssets)} − بدهی ${this.formatMoney(totalLiabilities)}</div>
+      </div>
+      <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+        <h4 class="text-xs font-bold text-emerald-700 mb-2"><i class="fa-solid fa-arrow-up text-emerald-500 ml-1"></i> دارایی‌ها (${this.formatMoney(totalAssets)})</h4>
+        <div class="space-y-1.5">${assets.map(renderAccountRow).join('') || '<p class="text-[11px] text-slate-400 text-center py-2">حسابی با مانده مثبت نیست</p>'}</div>
+      </div>
+      <div class="bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+        <h4 class="text-xs font-bold text-red-700 mb-2"><i class="fa-solid fa-arrow-down text-red-500 ml-1"></i> بدهی‌ها (${this.formatMoney(totalLiabilities)})</h4>
+        <div class="space-y-1.5">${liabilities.map(renderAccountRow).join('') || '<p class="text-[11px] text-slate-400 text-center py-2">بدهی‌ای نیست</p>'}</div>
+      </div>
+      ${totalReceivables > 0 ? `
+        <div class="bg-amber-50 p-3 rounded-xl border border-amber-100">
+          <h4 class="text-xs font-bold text-amber-700 mb-1"><i class="fa-solid fa-hand-holding-dollar ml-1"></i> مطالبات تسویه‌نشده</h4>
+          <div class="flex justify-between text-[11px]">
+            <span>مجموع طلب‌های شما از دیگران</span>
+            <span class="font-bold text-amber-700">${this.formatMoney(totalReceivables)}</span>
+          </div>
+        </div>
+      ` : ''}
+      <div class="bg-slate-50 p-3 rounded-xl text-[10px] text-slate-500 leading-relaxed">
+        <i class="fa-solid fa-lightbulb text-amber-500 ml-1"></i>
+        دارایی خالص = مجموع مانده مثبت حساب‌ها − مجموع مانده منفی.
+        مطالبات تسویه‌نشده (قرض‌های داده شده) جداگانه نمایش داده می‌شود.
+      </div>
+    `;
   }
 };
 

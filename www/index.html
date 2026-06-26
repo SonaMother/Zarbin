@@ -49,7 +49,7 @@
       <!-- App brand (small) + Version Badge -->
       <div class="flex items-center gap-2 px-2">
         <span class="font-bold text-sm tracking-wide">زرین</span>
-        <span class="version-badge">v1.0.0</span>
+        <span class="version-badge">v1.4.0</span>
       </div>
 
       <!-- Account Selector + SMS -->
@@ -95,6 +95,49 @@
           </div>
           <div id="dayPickerContainer" class="flex gap-1 justify-between overflow-x-auto no-scrollbar py-1">
             <!-- Populated by JS -->
+          </div>
+          <!-- Search & Filter Bar -->
+          <div class="flex items-center gap-2 mt-2 pt-2 border-t border-slate-100">
+            <div class="flex-1 flex items-center gap-2 bg-slate-50 rounded-lg px-2.5 py-1.5">
+              <i class="fa-solid fa-magnifying-glass text-slate-400 text-xs"></i>
+              <input id="txSearchInput" type="text" placeholder="جستجوی تراکنش (یادداشت، دسته، حساب)..." class="flex-1 bg-transparent outline-none text-[11px]" oninput="App.applyTxSearch(this.value)">
+              <button onclick="App.clearTxSearch()" id="txSearchClear" class="text-slate-400 hidden"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <button onclick="App.toggleFilterSheet()" class="relative p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-600">
+              <i class="fa-solid fa-filter text-xs"></i>
+              <span id="filterCountBadge" class="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white rounded-full text-[8px] flex items-center justify-center font-bold hidden">۰</span>
+            </button>
+          </div>
+          <!-- Filter Sheet (collapsible) -->
+          <div id="filterSheet" class="filter-sheet">
+            <div class="pt-3 space-y-2 text-[11px]">
+              <div>
+                <label class="block text-slate-500 mb-1 font-bold">نوع تراکنش</label>
+                <div class="flex gap-1 flex-wrap">
+                  <button onclick="App.toggleFilter('type','expense')" id="filter-type-expense" class="px-2 py-1 border rounded-md text-slate-600">هزینه</button>
+                  <button onclick="App.toggleFilter('type','income')" id="filter-type-income" class="px-2 py-1 border rounded-md text-slate-600">درآمد</button>
+                  <button onclick="App.toggleFilter('type','other')" id="filter-type-other" class="px-2 py-1 border rounded-md text-slate-600">سایر</button>
+                  <button onclick="App.toggleFilter('type','transfer')" id="filter-type-transfer" class="px-2 py-1 border rounded-md text-slate-600">انتقال</button>
+                </div>
+              </div>
+              <div>
+                <label class="block text-slate-500 mb-1 font-bold">حساب</label>
+                <select id="filterAccount" onchange="App.onFilterAccountChange(this.value)" class="w-full p-1.5 border rounded-md bg-slate-50">
+                  <option value="">همه حساب‌ها</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-500 mb-1 font-bold">مبلغ (ریال)</label>
+                <div class="flex gap-2">
+                  <input id="filterAmountMin" type="number" placeholder="حداقل" class="flex-1 p-1.5 border rounded-md bg-slate-50 text-left" oninput="App.applyAmountFilter()">
+                  <span class="text-slate-400">-</span>
+                  <input id="filterAmountMax" type="number" placeholder="حداکثر" class="flex-1 p-1.5 border rounded-md bg-slate-50 text-left" oninput="App.applyAmountFilter()">
+                </div>
+              </div>
+              <div class="flex gap-2 pt-1">
+                <button onclick="App.clearAllFilters()" class="flex-1 py-1.5 border rounded-md text-slate-600 font-bold">پاک کردن فیلترها</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -190,6 +233,61 @@
             <div>
               <span class="text-xs font-bold block">گزارش سالانه (درآمد/هزینه/پس‌انداز)</span>
               <span class="text-[10px] text-slate-400">نمودار ماهانه و خلاصه سال جاری</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.openCustomRangeReport()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fa-solid fa-calendar-range"></i></span>
+            <div>
+              <span class="text-xs font-bold block">گزارش بازه دلخواه</span>
+              <span class="text-[10px] text-slate-400">انتخاب تاریخ شروع و پایان + خروجی CSV/PDF</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.openBalanceSheet()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-scale-balanced"></i></span>
+            <div>
+              <span class="text-xs font-bold block">ترازنامه و دارایی خالص</span>
+              <span class="text-[10px] text-slate-400">صورت دارایی‌ها، بدهی‌ها و سرمایه خالص</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.openChequeManager()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center"><i class="fa-solid fa-money-check-dollar"></i></span>
+            <div>
+              <span class="text-xs font-bold block">مدیریت چک‌ها</span>
+              <span class="text-[10px] text-slate-400">چک‌های دریافتی و پرداختی با سررسید</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.openLoanManager()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center"><i class="fa-solid fa-hand-holding-dollar"></i></span>
+            <div>
+              <span class="text-xs font-bold block">مدیریت وام و اقساط</span>
+              <span class="text-[10px] text-slate-400">وام‌های دریافتی و پرداختی با برنامه اقساط</span>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
+        </div>
+
+        <div onclick="App.openPersonManager()" class="flex justify-between items-center bg-white p-3.5 rounded-xl border border-slate-100 hover:bg-slate-50 cursor-pointer shadow-sm transition-all">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center"><i class="fa-solid fa-users"></i></span>
+            <div>
+              <span class="text-xs font-bold block">مدیریت اشخاص</span>
+              <span class="text-[10px] text-slate-400">قرض‌ها و طلب‌ها با اشخاص</span>
             </div>
           </div>
           <i class="fa-solid fa-chevron-left text-slate-400 text-xs"></i>
@@ -647,6 +745,14 @@
               <span class="flex items-center gap-3"><i class="fa-solid fa-moon text-slate-400 w-5"></i>حالت تاریک</span>
               <div id="darkModeToggle" class="toggle-switch"></div>
             </button>
+            <button onclick="App.togglePinLock()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-lock text-slate-400 w-5"></i>قفل PIN</span>
+              <div id="pinLockToggle" class="toggle-switch"></div>
+            </button>
+            <button onclick="App.lockNow()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
+              <span class="flex items-center gap-3"><i class="fa-solid fa-shield-halved text-slate-400 w-5"></i>قفل فوری اپلیکیشن</span>
+              <i class="fa-solid fa-chevron-left text-[10px] text-slate-300"></i>
+            </button>
             <button onclick="App.openModeSwitcher()" class="w-full flex justify-between items-center py-2.5 px-2 hover:bg-slate-50 rounded-lg text-right">
               <span class="flex items-center gap-3"><i class="fa-solid fa-arrows-rotate text-slate-400 w-5"></i>تغییر حالت اپلیکیشن</span>
               <i class="fa-solid fa-chevron-left text-[10px] text-slate-300"></i>
@@ -667,8 +773,8 @@
         <!-- Build info -->
         <div class="bg-slate-50 rounded-lg p-3 text-center text-[10px] text-slate-400">
           <div class="font-bold text-slate-500">زرین · Zarbin</div>
-          <div class="mt-1">نسخه <span class="version-badge inline-block">v1.0.0</span></div>
-          <div class="build-number mt-1">Build 20260626</div>
+          <div class="mt-1">نسخه <span class="version-badge inline-block">v1.4.0</span></div>
+          <div class="build-number mt-1">Build 20260630</div>
           <div class="mt-2 text-[9px]">© ۲۰۲۶ SonaMother · GitHub</div>
         </div>
       </div>
@@ -926,7 +1032,7 @@
           </p>
           <div class="border-t pt-2 space-y-1 text-slate-500 text-[11px]">
             <div><span class="font-bold">ارائه‌دهنده:</span> SonaMother</div>
-            <div><span class="font-bold">نسخه:</span> <span class="version-badge inline-block">v1.0.0</span> <span class="build-number mr-2 text-slate-400">Build 20260626</span></div>
+            <div><span class="font-bold">نسخه:</span> <span class="version-badge inline-block">v1.4.0</span> <span class="build-number mr-2 text-slate-400">Build 20260630</span></div>
             <div><span class="font-bold">مخزن:</span> github.com/SonaMother/Zarbin</div>
             <div><span class="font-bold">پلتفرم:</span> Android (APK) · وب · PWA</div>
           </div>
@@ -1063,6 +1169,250 @@
       </div>
     </div>
 
+    <!-- ===================== CHEQUE MANAGER MODAL ===================== -->
+    <div id="chequeManagerModal" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closeChequeManager()" class="p-2 hover:bg-teal-950/40 rounded-full"><i class="fa-solid fa-arrow-right text-lg"></i></button>
+        <span class="font-bold text-sm">مدیریت چک‌ها</span>
+        <button onclick="App.openChequeForm()" class="p-2 hover:bg-teal-950/40 rounded-full"><i class="fa-solid fa-plus text-lg"></i></button>
+      </header>
+      <div class="bg-white border-b border-slate-200 flex text-xs font-bold shrink-0">
+        <button onclick="App.switchChequeTab('received')" id="chequeTab-received" class="flex-1 py-3 text-center border-b-2 border-teal-700 text-teal-700">دریافتی</button>
+        <button onclick="App.switchChequeTab('issued')" id="chequeTab-issued" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-600">پرداختی</button>
+        <button onclick="App.switchChequeTab('upcoming')" id="chequeTab-upcoming" class="flex-1 py-3 text-center border-b-2 border-transparent text-slate-600">سررسید نزدیک</button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-3 space-y-2 slim-scroll" id="chequeListContainer"></div>
+    </div>
+
+    <!-- ===================== CHEQUE FORM MODAL ===================== -->
+    <div id="chequeFormModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full max-h-[90%] overflow-y-auto slim-scroll p-4 space-y-3 text-xs modal-slide-in">
+        <h4 class="font-bold text-sm text-center border-b pb-2">ثبت چک جدید</h4>
+        <form onsubmit="App.handleChequeSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">نوع چک</label>
+            <select id="newChequeType" class="w-full p-2.5 border rounded-lg bg-slate-50">
+              <option value="received">چک دریافتی (برای من)</option>
+              <option value="issued">چک پرداختی (از من)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">بانک</label>
+            <select id="newChequeBank" class="w-full p-2.5 border rounded-lg bg-slate-50">
+              <option value="ملی">بانک ملی</option>
+              <option value="ملت">بانک ملت</option>
+              <option value="سپه">بانک سپه</option>
+              <option value="تجارت">بانک تجارت</option>
+              <option value="صادرات">بانک صادرات</option>
+              <option value="کشاورزی">بانک کشاورزی</option>
+              <option value="مسکن">بانک مسکن</option>
+              <option value="پاسارگاد">بانک پاسارگاد</option>
+              <option value="سامان">بانک سامان</option>
+              <option value="پارسیان">بانک پارسیان</option>
+              <option value="شهر">بانک شهر</option>
+              <option value="آینده">بانک آینده</option>
+              <option value="رسالت">بانک رسالت</option>
+              <option value="سرمایه">بانک سرمایه</option>
+              <option value="تات">بانک تات</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">شماره چک</label>
+              <input id="newChequeNumber" type="text" placeholder="۱۲۳۴۵۶" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">سریال صیادی</label>
+              <input id="newChequeSayadi" type="text" placeholder="۱۶ رقمی" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">مبلغ (ریال)</label>
+            <input id="newChequeAmount" type="number" required placeholder="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">تاریخ صدور</label>
+              <input id="newChequeIssueDate" type="text" placeholder="1405/01/01" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">سررسید</label>
+              <input id="newChequeDueDate" type="text" required placeholder="1405/02/01" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">حساب بانکی مرتبط</label>
+            <select id="newChequeAccount" class="w-full p-2.5 border rounded-lg bg-slate-50"></select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1" id="newChequePayeeLabel">طرف حساب</label>
+            <input id="newChequePayee" type="text" placeholder="نام شخص/شرکت" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">یادداشت (اختیاری)</label>
+            <input id="newChequeNote" type="text" placeholder="بابت..." class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="button" onclick="App.closeModal('chequeFormModal')" class="flex-1 py-2.5 border rounded-lg text-slate-600 font-bold">انصراف</button>
+            <button type="submit" class="flex-1 py-2.5 bg-teal-800 text-white rounded-lg font-bold shadow">ثبت چک</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== LOAN MANAGER MODAL ===================== -->
+    <div id="loanManagerModal" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closeLoanManager()" class="p-2 hover:bg-teal-950/40 rounded-full"><i class="fa-solid fa-arrow-right text-lg"></i></button>
+        <span class="font-bold text-sm">مدیریت وام‌ها</span>
+        <button onclick="App.openLoanForm()" class="p-2 hover:bg-teal-950/40 rounded-full"><i class="fa-solid fa-plus text-lg"></i></button>
+      </header>
+      <div class="flex-1 overflow-y-auto p-3 space-y-3 slim-scroll" id="loanListContainer"></div>
+    </div>
+
+    <!-- ===================== LOAN FORM MODAL ===================== -->
+    <div id="loanFormModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full max-h-[90%] overflow-y-auto slim-scroll p-4 space-y-3 text-xs modal-slide-in">
+        <h4 class="font-bold text-sm text-center border-b pb-2">ثبت وام جدید</h4>
+        <form onsubmit="App.handleLoanSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">نوع وام</label>
+            <select id="newLoanType" class="w-full p-2.5 border rounded-lg bg-slate-50">
+              <option value="received">وام دریافتی (از بانک یا شخص)</option>
+              <option value="given">وام پرداختی (به دیگری)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">طرف حساب (بانک یا شخص)</label>
+            <input id="newLoanCounterparty" type="text" required placeholder="مثال: بانک ملت / علی احمدی" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">مبلغ اصل وام (ریال)</label>
+            <input id="newLoanPrincipal" type="number" required placeholder="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">نرخ سود سالانه (٪)</label>
+              <input id="newLoanRate" type="number" step="0.1" placeholder="0" value="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">تعداد ماه</label>
+              <input id="newLoanTerm" type="number" required placeholder="12" value="12" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
+            </div>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">تاریخ شروع</label>
+            <input id="newLoanStartDate" type="text" placeholder="1405/01/01" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">حساب بانکی</label>
+            <select id="newLoanAccount" class="w-full p-2.5 border rounded-lg bg-slate-50"></select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">یادداشت (اختیاری)</label>
+            <input id="newLoanNote" type="text" placeholder="بابت..." class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="button" onclick="App.closeModal('loanFormModal')" class="flex-1 py-2.5 border rounded-lg text-slate-600 font-bold">انصراف</button>
+            <button type="submit" class="flex-1 py-2.5 bg-teal-800 text-white rounded-lg font-bold shadow">ثبت وام</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== LOAN DETAIL MODAL ===================== -->
+    <div id="loanDetailModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-sm w-full max-h-[85%] overflow-hidden flex flex-col modal-slide-in">
+        <div class="bg-appDarkTeal text-white p-4 flex justify-between items-center shrink-0">
+          <h4 id="loanDetailTitle" class="font-bold text-sm">جزئیات وام</h4>
+          <button onclick="App.closeModal('loanDetailModal')" class="text-white/70 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <div id="loanDetailContent" class="p-4 overflow-y-auto slim-scroll text-xs"></div>
+      </div>
+    </div>
+
+    <!-- ===================== PERSON MANAGER MODAL ===================== -->
+    <div id="personManagerModal" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closePersonManager()" class="p-2 hover:bg-teal-950/40 rounded-full"><i class="fa-solid fa-arrow-right text-lg"></i></button>
+        <span class="font-bold text-sm">مدیریت اشخاص</span>
+        <button onclick="App.openPersonForm()" class="p-2 hover:bg-teal-950/40 rounded-full"><i class="fa-solid fa-plus text-lg"></i></button>
+      </header>
+      <div class="flex-1 overflow-y-auto p-3 space-y-2 slim-scroll" id="personListContainer"></div>
+    </div>
+
+    <!-- ===================== PERSON FORM MODAL ===================== -->
+    <div id="personFormModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-xs w-full p-4 space-y-3 text-xs modal-slide-in">
+        <h4 class="font-bold text-sm text-center border-b pb-2">افزودن شخص</h4>
+        <form onsubmit="App.handlePersonSubmit(event)" class="space-y-3">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">نام و نام خانوادگی</label>
+            <input id="newPersonName" type="text" required placeholder="مثال: علی احمدی" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">تلفن (اختیاری)</label>
+            <input id="newPersonPhone" type="tel" placeholder="0912..." class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">نسبت</label>
+            <select id="newPersonRelationship" class="w-full p-2.5 border rounded-lg bg-slate-50">
+              <option value="family">خانواده</option>
+              <option value="friend">دوست</option>
+              <option value="colleague">همکار</option>
+              <option value="business">شریک تجاری</option>
+              <option value="other">سایر</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">یادداشت (اختیاری)</label>
+            <input id="newPersonNote" type="text" placeholder="..." class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none">
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button type="button" onclick="App.closeModal('personFormModal')" class="flex-1 py-2.5 border rounded-lg text-slate-600 font-bold">انصراف</button>
+            <button type="submit" class="flex-1 py-2.5 bg-teal-800 text-white rounded-lg font-bold shadow">ثبت</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ===================== CUSTOM RANGE REPORT MODAL ===================== -->
+    <div id="customRangeModal" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closeCustomRangeReport()" class="p-2 hover:bg-teal-950/40 rounded-full"><i class="fa-solid fa-arrow-right text-lg"></i></button>
+        <span class="font-bold text-sm">گزارش بازه دلخواه</span>
+        <div class="w-8"></div>
+      </header>
+      <div class="bg-white p-3 border-b border-slate-200 shrink-0">
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">از تاریخ</label>
+            <input id="rangeFromDate" type="text" placeholder="1405/01/01" class="w-full p-2 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+          </div>
+          <div>
+            <label class="block text-[11px] text-slate-400 mb-1">تا تاریخ</label>
+            <input id="rangeToDate" type="text" placeholder="1405/12/29" class="w-full p-2 border rounded-lg bg-slate-50 outline-none text-left font-mono">
+          </div>
+        </div>
+        <div class="flex gap-2 mt-2">
+          <button onclick="App.runCustomRangeReport()" class="flex-1 py-2 bg-teal-800 text-white rounded-lg text-[11px] font-bold">اعمال و نمایش</button>
+          <button onclick="App.exportCustomRangeCSV()" class="px-3 py-2 bg-emerald-600 text-white rounded-lg text-[11px] font-bold"><i class="fa-solid fa-file-csv"></i> CSV</button>
+          <button onclick="App.exportCustomRangePDF()" class="px-3 py-2 bg-red-600 text-white rounded-lg text-[11px] font-bold"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto p-3 space-y-3 slim-scroll" id="customRangeContent"></div>
+    </div>
+
+    <!-- ===================== BALANCE SHEET MODAL ===================== -->
+    <div id="balanceSheetModal" class="absolute inset-0 bg-appBg z-40 translate-x-full transition-transform duration-300 flex flex-col">
+      <header class="bg-appDarkTeal text-white h-14 flex items-center justify-between px-4 shrink-0 shadow-md safe-top">
+        <button onclick="App.closeBalanceSheet()" class="p-2 hover:bg-teal-950/40 rounded-full"><i class="fa-solid fa-arrow-right text-lg"></i></button>
+        <span class="font-bold text-sm">ترازنامه و دارایی خالص</span>
+        <div class="w-8"></div>
+      </header>
+      <div class="flex-1 overflow-y-auto p-3 space-y-3 slim-scroll" id="balanceSheetContent"></div>
+    </div>
+
     <!-- ===================== "MORE" MENU MODAL ===================== -->
     <div id="moreMenuModal" class="absolute inset-0 bg-slate-950/60 z-50 hidden flex items-end justify-center p-0">
       <div class="bg-white w-full max-w-md rounded-t-2xl p-4 space-y-2 modal-slide-in safe-bottom">
@@ -1105,6 +1455,78 @@
           <i class="fa-solid fa-chevron-left text-slate-300 text-xs"></i>
         </button>
       </div>
+    </div>
+
+    <!-- ===================== LOCK SCREEN (PIN) ===================== -->
+    <div id="lockScreenModal" class="absolute inset-0 pin-screen z-[70] hidden flex-col items-center justify-center p-6 text-white">
+      <div class="pin-logo">ز</div>
+      <h2 class="text-xl font-bold mb-1">زرین</h2>
+      <p class="text-amber-300/70 text-xs mb-4">برای دسترسی، PIN خود را وارد کنید</p>
+
+      <div class="pin-dots-row">
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+      </div>
+
+      <div class="pin-pad">
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('1')">۱</button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('2')">۲</button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('3')">۳</button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('4')">۴</button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('5')">۵</button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('6')">۶</button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('7')">۷</button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('8')">۸</button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('9')">۹</button>
+        <button class="pin-pad-btn action" onclick="App.tryBiometricUnlock()" id="biometricBtn" style="display:none"><i class="fa-solid fa-fingerprint"></i></button>
+        <button class="pin-pad-btn" onclick="App.pressPinDigit('0')">۰</button>
+        <button class="pin-pad-btn action confirm" onclick="App.submitPin()"><i class="fa-solid fa-check"></i></button>
+      </div>
+
+      <button class="pin-pad-btn action mt-4" onclick="App.pressPinBackspace()"><i class="fa-solid fa-delete-left"></i> حذف</button>
+
+      <p class="text-[9px] text-teal-300/40 mt-6">نسخه <span class="version-badge inline-block">v1.4.0</span></p>
+    </div>
+
+    <!-- ===================== PIN SETUP MODAL ===================== -->
+    <div id="pinSetupModal" class="absolute inset-0 pin-screen z-[70] hidden flex-col items-center justify-center p-6 text-white">
+      <div class="pin-logo">ز</div>
+      <h2 id="pinSetupTitle" class="text-xl font-bold mb-1">تعیین PIN جدید</h2>
+      <p id="pinSetupSubtitle" class="text-amber-300/70 text-xs mb-4">یک PIN ۴ تا ۸ رقمی وارد کنید</p>
+
+      <div class="pin-dots-row">
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+        <span class="pin-dot"></span>
+      </div>
+
+      <div class="pin-pad">
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('1')">۱</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('2')">۲</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('3')">۳</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('4')">۴</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('5')">۵</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('6')">۶</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('7')">۷</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('8')">۸</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('9')">۹</button>
+        <button class="pin-pad-btn action" onclick="App.closePinSetup()">انصراف</button>
+        <button class="pin-pad-btn" onclick="App.pressPinSetupDigit('0')">۰</button>
+        <button class="pin-pad-btn action confirm" onclick="App.submitPinSetup()"><i class="fa-solid fa-check"></i></button>
+      </div>
+
+      <button class="pin-pad-btn action mt-4" onclick="App.pressPinSetupBackspace()"><i class="fa-solid fa-delete-left"></i> حذف</button>
     </div>
 
     <!-- ===================== ONBOARDING (FIRST RUN) ===================== -->
@@ -1166,7 +1588,7 @@
       </p>
 
       <div class="mt-3 text-[9px] text-teal-300/30">
-        نسخه <span class="version-badge inline-block">v1.3.0</span> · Build <span class="build-number">20260629</span>
+        نسخه <span class="version-badge inline-block">v1.4.0</span> · Build <span class="build-number">20260630</span>
       </div>
     </div>
 
@@ -1205,6 +1627,7 @@
   <!-- ===================== JS BUNDLE ===================== -->
   <script src="js/lib/chart.umd.min.js"></script>
   <script src="js/jalali.js"></script>
+  <script src="js/security.js"></script>
   <script src="js/store.js"></script>
   <script src="js/render.js"></script>
   <script src="js/export.js"></script>

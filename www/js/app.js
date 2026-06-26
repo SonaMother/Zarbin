@@ -15,7 +15,11 @@ const App = {
     if (Store.isFirstRun) {
       // Show onboarding modal; defer dashboard render until user picks a mode
       this.showOnboarding();
+    } else if (Security.isLocked()) {
+      // PIN-protected — show lock screen first
+      this.showLockScreen();
     } else {
+      Security.touchActivity();
       Render.renderDashboard();
     }
     this.updateSmsBadge();
@@ -149,8 +153,16 @@ const App = {
   },
 
   // ==================== Transaction Form ====================
+  // Maps Persian FAB labels to internal transaction types
+  // (used to be inferred from form title string — now explicit)
+  // Note: FORM_TYPE_MAP is set as a regular property below, not `static`.
+
+  currentFormType: null,  // set by openTransactionForm
+
   openTransactionForm(type) {
     this.toggleFabMenu();
+    // Store the explicit type so handleFormSubmit doesn't need to parse titles
+    this.currentFormType = type;
     // Ensure dropdown reflects current accounts
     this.populateSourceAccounts();
     this.populateDestAccounts();
@@ -172,7 +184,7 @@ const App = {
       destWrapper.classList.toggle('hidden', type !== 'انتقال');
     }
 
-    // Set type hidden field
+    // Set type hidden field (kept for backward compatibility)
     if (typeLabel) {
       typeLabel.value = type;
     }
@@ -181,6 +193,13 @@ const App = {
     document.getElementById('financialForm').reset();
     document.getElementById('formAmount').value = '';
     document.getElementById('formNote').value = '';
+    // Reset recurring toggle from previous use
+    this.recurringFormState = { enabled: false, frequency: 'monthly' };
+    const rToggle = document.getElementById('formRecurringToggle');
+    const rOpts = document.getElementById('formRecurringOptions');
+    if (rToggle) rToggle.classList.remove('active');
+    if (rOpts) rOpts.classList.add('hidden');
+    this.setRecurringFrequency('monthly');
 
     // Set today's date in date field
     const today = JalaliDate.today();
@@ -207,27 +226,23 @@ const App = {
     const acc = document.getElementById('formSourceAccount').value;
     const note = document.getElementById('formNote').value;
     const fee = parseInt(document.getElementById('formFee').value || '0');
-    const title = document.getElementById('formTitle').innerText;
     const destAcc = document.getElementById('formDestAccount')?.value;
 
-    let type = 'expense';
-    let icon = 'fa-tag';
-    let color = 'bg-slate-500';
+    // Use explicit type set by openTransactionForm, not title parsing
+    const typeKey = this.currentFormType;
+    const FORM_TYPE_MAP = {
+      'پرداخت': { type: 'expense',  icon: 'fa-arrow-down-long', color: 'bg-red-500' },
+      'دریافت': { type: 'income',   icon: 'fa-arrow-up-long',   color: 'bg-emerald-500' },
+      'وام':    { type: 'other',    icon: 'fa-people-group',    color: 'bg-amber-500' },
+      'انتقال': { type: 'transfer', icon: 'fa-right-left',      color: 'bg-slate-700' }
+    };
+    const mapping = FORM_TYPE_MAP[typeKey] || { type: 'other', icon: 'fa-tag', color: 'bg-amber-500' };
+    let type = mapping.type;
+    let icon = mapping.icon;
+    let color = mapping.color;
 
-    if (title.includes('پرداخت')) {
-      type = 'expense';
-      icon = 'fa-arrow-down-long';
-      color = 'bg-red-500';
-    } else if (title.includes('دریافت')) {
-      type = 'income';
-      icon = 'fa-arrow-up-long';
-      color = 'bg-emerald-500';
-    } else if (title.includes('وام')) {
-      type = 'other';
-      icon = 'fa-people-group';
-      color = 'bg-amber-500';
-    } else if (title.includes('انتقال')) {
-      // Validate destination account
+    // Transfer-specific validation
+    if (type === 'transfer') {
       if (!destAcc) {
         this.toast('حساب مقصد را انتخاب کنید', 'error');
         return;
@@ -236,13 +251,6 @@ const App = {
         this.toast('حساب مبدا و مقصد نمی‌توانند یکسان باشند', 'error');
         return;
       }
-      type = 'transfer';
-      icon = 'fa-right-left';
-      color = 'bg-slate-700';
-    } else {
-      type = 'other';
-      icon = 'fa-tag';
-      color = 'bg-amber-500';
     }
 
     const tx = {
@@ -538,8 +546,25 @@ const App = {
     for (let day = 1; day <= daysInMonth; day++) {
       const active = day === selectedDay;
       const dateStr = `${jy}/${String(jm).padStart(2, '0')}/${String(day).padStart(2, '0')}`;
+      // Compute weekday for this day to highlight Fridays
+      const [dgy, dgm, dgd] = JalaliDate.jalaliToGregorian(jy, jm, day);
+      const weekday = new Date(dgy, dgm - 1, dgd).getDay();
+      const persianWeekday = (weekday + 1) % 7;
+      const isFriday = persianWeekday === 6;
+      const holiday = Render.getPersianHoliday(jy, jm, day);
+
+      let cellClass;
+      if (active) {
+        cellClass = 'bg-teal-900 text-white shadow-sm';
+      } else if (holiday) {
+        cellClass = 'text-red-600 hover:bg-red-50';
+      } else if (isFriday) {
+        cellClass = 'text-red-400 hover:bg-slate-100';
+      } else {
+        cellClass = 'hover:bg-slate-100 text-slate-700';
+      }
       html += `
-        <div onclick="App.selectDayFromCalendar('${dateStr}')" class="p-1.5 rounded-full text-center cursor-pointer font-bold ${active ? 'bg-teal-900 text-white shadow-sm' : 'hover:bg-slate-100 text-slate-700'}">
+        <div onclick="App.selectDayFromCalendar('${dateStr}')" class="p-1.5 rounded-full text-center cursor-pointer font-bold ${cellClass}" ${holiday ? `title="${Render.escapeHtml(holiday)}"` : ''}>
           ${Render.toPersian(day)}
         </div>
       `;
@@ -571,6 +596,195 @@ const App = {
     document.documentElement.setAttribute('data-theme', Store.state.darkMode ? 'dark' : 'light');
     const toggle = document.getElementById('darkModeToggle');
     if (toggle) toggle.classList.toggle('active', Store.state.darkMode);
+  },
+
+  // ==================== PIN Lock / Security ====================
+  pinEntryBuffer: '',
+
+  showLockScreen() {
+    const modal = document.getElementById('lockScreenModal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    this.pinEntryBuffer = '';
+    this.updatePinDots();
+    // Try biometric automatically if enabled
+    if (Store.state.security && Store.state.security.biometricEnabled) {
+      setTimeout(() => this.tryBiometricUnlock(), 400);
+    }
+  },
+
+  hideLockScreen() {
+    const modal = document.getElementById('lockScreenModal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  },
+
+  // PIN pad handler — called from lock screen digit buttons
+  pressPinDigit(digit) {
+    if (this.pinEntryBuffer.length >= 8) return;
+    this.pinEntryBuffer += digit;
+    this.updatePinDots();
+    if (this.pinEntryBuffer.length >= 4) {
+      // Auto-submit when user enters at least 4 digits (or wait for explicit submit?)
+      // We let the user tap the checkmark to submit, so don't auto-submit.
+    }
+  },
+
+  pressPinBackspace() {
+    this.pinEntryBuffer = this.pinEntryBuffer.slice(0, -1);
+    this.updatePinDots();
+  },
+
+  updatePinDots() {
+    const dots = document.querySelectorAll('#lockScreenModal .pin-dot');
+    dots.forEach((dot, i) => {
+      dot.classList.toggle('filled', i < this.pinEntryBuffer.length);
+    });
+  },
+
+  async submitPin() {
+    if (this.pinEntryBuffer.length < 4) {
+      this.toast('PIN باید حداقل ۴ رقم باشد', 'error');
+      return;
+    }
+    const ok = await Security.verifyPin(this.pinEntryBuffer, Store.state.security.pinHash);
+    if (ok) {
+      Security.unlock();
+      this.pinEntryBuffer = '';
+      this.hideLockScreen();
+      Render.renderDashboard();
+      this.toast('خوش آمدید!', 'success');
+    } else {
+      Store.state.security.failedAttempts = (Store.state.security.failedAttempts || 0) + 1;
+      Store.save();
+      this.pinEntryBuffer = '';
+      this.updatePinDots();
+      // Shake animation
+      const pad = document.querySelector('#lockScreenModal .pin-pad');
+      if (pad) {
+        pad.classList.add('shake');
+        setTimeout(() => pad.classList.remove('shake'), 500);
+      }
+      const attempts = Store.state.security.failedAttempts;
+      if (attempts >= 5) {
+        this.toast('۵ تلاش ناموفق! برای امنیت، قفل PIN را تنظیم مجدد کنید (تنظیمات → قفل PIN → غیرفعال‌سازی).', 'error');
+      } else {
+        this.toast(`PIN اشتباه است (${this.toPersianDigits(attempts)} تلاش)`, 'error');
+      }
+    }
+  },
+
+  async tryBiometricUnlock() {
+    const ok = await Security.biometricUnlock();
+    if (ok) {
+      this.hideLockScreen();
+      Render.renderDashboard();
+      this.toast('خوش آمدید!', 'success');
+    }
+  },
+
+  toPersianDigits(n) {
+    return Render.toPersian(n);
+  },
+
+  // PIN setup flow (from settings)
+  async openPinSetup() {
+    this.toggleSidebar(false);
+    const modal = document.getElementById('pinSetupModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    // Reset
+    this._pinSetupStep = 1;  // 1 = enter new pin, 2 = confirm
+    this._pinSetupFirst = '';
+    this.pinEntryBuffer = '';
+    this.updatePinSetupDots();
+    document.getElementById('pinSetupTitle').innerText = 'تعیین PIN جدید';
+    document.getElementById('pinSetupSubtitle').innerText = 'یک PIN ۴ تا ۸ رقمی وارد کنید';
+  },
+
+  closePinSetup() {
+    const modal = document.getElementById('pinSetupModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  },
+
+  pressPinSetupDigit(digit) {
+    if (this.pinEntryBuffer.length >= 8) return;
+    this.pinEntryBuffer += digit;
+    this.updatePinSetupDots();
+  },
+
+  pressPinSetupBackspace() {
+    this.pinEntryBuffer = this.pinEntryBuffer.slice(0, -1);
+    this.updatePinSetupDots();
+  },
+
+  updatePinSetupDots() {
+    const dots = document.querySelectorAll('#pinSetupModal .pin-dot');
+    dots.forEach((dot, i) => {
+      dot.classList.toggle('filled', i < this.pinEntryBuffer.length);
+    });
+  },
+
+  async submitPinSetup() {
+    if (this.pinEntryBuffer.length < 4) {
+      this.toast('PIN باید حداقل ۴ رقم باشد', 'error');
+      return;
+    }
+    if (this._pinSetupStep === 1) {
+      this._pinSetupFirst = this.pinEntryBuffer;
+      this._pinSetupStep = 2;
+      this.pinEntryBuffer = '';
+      this.updatePinSetupDots();
+      document.getElementById('pinSetupTitle').innerText = 'تایید PIN';
+      document.getElementById('pinSetupSubtitle').innerText = 'PIN را دوباره وارد کنید';
+    } else {
+      // Confirm step
+      if (this.pinEntryBuffer !== this._pinSetupFirst) {
+        this.toast('PIN ها مطابقت ندارند. دوباره تلاش کنید.', 'error');
+        this._pinSetupStep = 1;
+        this._pinSetupFirst = '';
+        this.pinEntryBuffer = '';
+        this.updatePinSetupDots();
+        document.getElementById('pinSetupTitle').innerText = 'تعیین PIN جدید';
+        document.getElementById('pinSetupSubtitle').innerText = 'یک PIN ۴ تا ۸ رقمی وارد کنید';
+        return;
+      }
+      // Save
+      await Security.setPin(this.pinEntryBuffer);
+      this.closePinSetup();
+      this.toast('PIN با موفقیت تنظیم شد', 'success');
+      // Update sidebar toggle state
+      const toggle = document.getElementById('pinLockToggle');
+      if (toggle) toggle.classList.add('active');
+    }
+  },
+
+  togglePinLock() {
+    if (Security.isPinEnabled()) {
+      // Disable
+      if (confirm('غیرفعال‌سازی قفل PIN؟ داده‌های شما باقی می‌ماند اما قفل غیرفعال می‌شود.')) {
+        Security.disablePin();
+        const toggle = document.getElementById('pinLockToggle');
+        if (toggle) toggle.classList.remove('active');
+        this.toast('قفل PIN غیرفعال شد', 'success');
+      }
+    } else {
+      // Begin setup
+      this.openPinSetup();
+    }
+  },
+
+  lockNow() {
+    if (!Security.isPinEnabled()) {
+      this.toast('ابتدا قفل PIN را فعال کنید', 'error');
+      return;
+    }
+    this.toggleSidebar(false);
+    Security.lock();
+    this.showLockScreen();
   },
 
   // ==================== Backup ====================
@@ -625,7 +839,8 @@ const App = {
 
   // ==================== Transaction Details ====================
   showTransactionDetails(id) {
-    const tx = Store.state.transactions.find(t => t.id === id);
+    // id may be a UUID string (crypto.randomUUID) — never parse as int
+    const tx = Store.state.transactions.find(t => String(t.id) === String(id));
     if (!tx) return;
     const modal = document.getElementById('txDetailsModal');
     document.getElementById('txDetailsCategory').innerText = tx.category;
@@ -635,13 +850,13 @@ const App = {
     document.getElementById('txDetailsType').innerText = tx.type === 'expense' ? 'هزینه' : tx.type === 'income' ? 'درآمد' : tx.type === 'transfer' ? 'انتقال' : 'سایر';
     document.getElementById('txDetailsNote').innerText = tx.note || '—';
     document.getElementById('txDetailsBalance').innerText = Render.formatMoney(tx.balance || 0);
-    modal.dataset.txId = id;
+    modal.dataset.txId = tx.id;
     modal.classList.remove('hidden');
   },
 
   deleteTransactionFromDetails() {
     const modal = document.getElementById('txDetailsModal');
-    const id = parseInt(modal.dataset.txId);
+    const id = modal.dataset.txId;
     modal.classList.add('hidden');
     this.deleteTransaction(id);
   },
@@ -696,9 +911,24 @@ const App = {
       });
     }
 
-    // Periodic save (in case of background kill)
+    // Periodic save (in case of background kill) + auto-lock
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) Store.save();
+      if (document.hidden) {
+        Store.save();
+        Security.touchActivity();
+      } else {
+        // App became visible again — check if we should lock
+        if (Security.isPinEnabled() && Security.isLocked()) {
+          this.showLockScreen();
+        }
+      }
+    });
+
+    // Touch activity on user interaction (only when unlocked)
+    ['click', 'touchstart'].forEach(evt => {
+      document.addEventListener(evt, () => {
+        if (!Security.isLocked()) Security.touchActivity();
+      }, { passive: true });
     });
   },
 
@@ -709,6 +939,165 @@ const App = {
   categoryFilter: 'all',
   categorySearchQuery: '',
   recurringFormState: { enabled: false, frequency: 'monthly' },
+
+  // Transaction search/filter state
+  txSearchQuery: '',
+  txFilters: {
+    types: new Set(),       // 'expense' | 'income' | 'other' | 'transfer'
+    account: '',            // account name or ''
+    amountMin: null,
+    amountMax: null
+  },
+
+  // When filters/search are active, we ignore the selected date and show all matching txs
+  isFilteringActive() {
+    return this.txSearchQuery.length > 0 ||
+           this.txFilters.types.size > 0 ||
+           this.txFilters.account !== '' ||
+           this.txFilters.amountMin !== null ||
+           this.txFilters.amountMax !== null;
+  },
+
+  applyTxSearch(query) {
+    this.txSearchQuery = (query || '').trim();
+    const clearBtn = document.getElementById('txSearchClear');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !this.txSearchQuery);
+    Render.renderDashboard();
+  },
+
+  clearTxSearch() {
+    this.txSearchQuery = '';
+    const input = document.getElementById('txSearchInput');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('txSearchClear');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    Render.renderDashboard();
+  },
+
+  toggleFilterSheet() {
+    const sheet = document.getElementById('filterSheet');
+    if (!sheet) return;
+    sheet.classList.toggle('open');
+    // Populate account dropdown on first open
+    const sel = document.getElementById('filterAccount');
+    if (sel && sel.options.length <= 1) {
+      Object.keys(Store.state.accounts).forEach(acc => {
+        const opt = document.createElement('option');
+        opt.value = acc;
+        opt.textContent = acc;
+        sel.appendChild(opt);
+      });
+    }
+  },
+
+  toggleFilter(category, value) {
+    if (category === 'type') {
+      if (this.txFilters.types.has(value)) {
+        this.txFilters.types.delete(value);
+      } else {
+        this.txFilters.types.add(value);
+      }
+      const btn = document.getElementById(`filter-type-${value}`);
+      if (btn) {
+        const active = this.txFilters.types.has(value);
+        btn.classList.toggle('bg-teal-800', active);
+        btn.classList.toggle('text-white', active);
+        btn.classList.toggle('text-slate-600', !active);
+      }
+    }
+    this.updateFilterBadge();
+    Render.renderDashboard();
+  },
+
+  onFilterAccountChange(value) {
+    this.txFilters.account = value || '';
+    this.updateFilterBadge();
+    Render.renderDashboard();
+  },
+
+  applyAmountFilter() {
+    const min = document.getElementById('filterAmountMin')?.value;
+    const max = document.getElementById('filterAmountMax')?.value;
+    this.txFilters.amountMin = min ? parseInt(min) : null;
+    this.txFilters.amountMax = max ? parseInt(max) : null;
+    this.updateFilterBadge();
+    Render.renderDashboard();
+  },
+
+  updateFilterBadge() {
+    let count = 0;
+    if (this.txFilters.types.size > 0) count++;
+    if (this.txFilters.account) count++;
+    if (this.txFilters.amountMin !== null || this.txFilters.amountMax !== null) count++;
+    const badge = document.getElementById('filterCountBadge');
+    if (badge) {
+      badge.classList.toggle('hidden', count === 0);
+      if (count > 0) badge.innerText = Render.toPersian(count);
+    }
+  },
+
+  clearAllFilters() {
+    this.txSearchQuery = '';
+    this.txFilters.types.clear();
+    this.txFilters.account = '';
+    this.txFilters.amountMin = null;
+    this.txFilters.amountMax = null;
+    // Reset UI
+    const input = document.getElementById('txSearchInput');
+    if (input) input.value = '';
+    ['expense','income','other','transfer'].forEach(t => {
+      const btn = document.getElementById(`filter-type-${t}`);
+      if (btn) {
+        btn.classList.remove('bg-teal-800','text-white');
+        btn.classList.add('text-slate-600');
+      }
+    });
+    const accSel = document.getElementById('filterAccount');
+    if (accSel) accSel.value = '';
+    const min = document.getElementById('filterAmountMin');
+    if (min) min.value = '';
+    const max = document.getElementById('filterAmountMax');
+    if (max) max.value = '';
+    const clearBtn = document.getElementById('txSearchClear');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    this.updateFilterBadge();
+    Render.renderDashboard();
+    this.toast('فیلترها پاک شدند', 'success');
+  },
+
+  // Returns the filtered list of transactions (respects search + filters)
+  // When NOT filtering, returns only txs for activeAccount + selectedDate.
+  getFilteredTransactions() {
+    const state = Store.state;
+    let txs = state.transactions;
+
+    if (this.isFilteringActive()) {
+      // Apply search and filters across ALL transactions (ignore date/account)
+      const q = this.txSearchQuery.toLowerCase();
+      const persianNorm = (s) => (s || '').toString().toLowerCase();
+      txs = txs.filter(t => {
+        // Search query
+        if (q) {
+          const haystack = [t.category, t.note, t.account, t.destAccount, t.type]
+            .map(persianNorm).join(' ');
+          if (!haystack.includes(q)) return false;
+        }
+        // Type filter
+        if (this.txFilters.types.size > 0 && !this.txFilters.types.has(t.type)) return false;
+        // Account filter
+        if (this.txFilters.account && t.account !== this.txFilters.account && t.destAccount !== this.txFilters.account) return false;
+        // Amount filter
+        if (this.txFilters.amountMin !== null && t.amount < this.txFilters.amountMin) return false;
+        if (this.txFilters.amountMax !== null && t.amount > this.txFilters.amountMax) return false;
+        return true;
+      });
+      return txs;
+    } else {
+      // Normal mode: only active account + selected date
+      const selDate = state.selectedDate;
+      return txs.filter(t => t.account === state.activeAccount && t.date === selDate);
+    }
+  },
 
   switchMainView(view) {
     this.activeMainView = view;
@@ -968,6 +1357,323 @@ const App = {
     document.getElementById('helpTopicTitle').innerText = titles[topic] || 'راهنما';
     document.getElementById('helpTopicContent').innerHTML = Render.getHelpContent(topic);
     document.getElementById('helpTopicModal').classList.remove('hidden');
+  },
+
+  // ==================== Cheque Management ====================
+  activeChequeTab: 'received',
+
+  openChequeManager() {
+    document.getElementById('chequeManagerModal').classList.remove('translate-x-full');
+    this.activeChequeTab = 'received';
+    this.switchChequeTab('received');
+  },
+
+  closeChequeManager() {
+    document.getElementById('chequeManagerModal').classList.add('translate-x-full');
+  },
+
+  switchChequeTab(tab) {
+    this.activeChequeTab = tab;
+    ['received', 'issued', 'upcoming'].forEach(t => {
+      const btn = document.getElementById(`chequeTab-${t}`);
+      if (btn) {
+        const active = t === tab;
+        btn.classList.toggle('border-teal-700', active);
+        btn.classList.toggle('text-teal-700', active);
+        btn.classList.toggle('border-transparent', !active);
+        btn.classList.toggle('text-slate-600', !active);
+      }
+    });
+    Render.renderChequeList(tab);
+  },
+
+  openChequeForm() {
+    // Populate account dropdown
+    const sel = document.getElementById('newChequeAccount');
+    sel.innerHTML = '';
+    Object.keys(Store.state.accounts).forEach(acc => {
+      const opt = document.createElement('option');
+      opt.value = acc;
+      opt.textContent = acc;
+      sel.appendChild(opt);
+    });
+    // Set today's date as default issue date
+    const today = JalaliDate.today();
+    const todayStr = `${today[0]}/${String(today[1]).padStart(2,'0')}/${String(today[2]).padStart(2,'0')}`;
+    document.getElementById('newChequeIssueDate').value = todayStr;
+    document.getElementById('newChequeDueDate').value = todayStr;
+    document.getElementById('chequeFormModal').classList.remove('hidden');
+  },
+
+  handleChequeSubmit(e) {
+    e.preventDefault();
+    const amount = parseInt(document.getElementById('newChequeAmount').value);
+    if (!amount || amount <= 0) {
+      this.toast('مبلغ معتبر وارد کنید', 'error');
+      return;
+    }
+    const dueDate = document.getElementById('newChequeDueDate').value.trim();
+    if (!/^\d{4}\/\d{2}\/\d{2}$/.test(dueDate)) {
+      this.toast('سررسید را به فرمت 1405/01/01 وارد کنید', 'error');
+      return;
+    }
+    Store.addCheque({
+      type: document.getElementById('newChequeType').value,
+      bank: document.getElementById('newChequeBank').value,
+      chequeNumber: document.getElementById('newChequeNumber').value.trim(),
+      sayadiSerial: document.getElementById('newChequeSayadi').value.trim(),
+      amount,
+      issueDate: document.getElementById('newChequeIssueDate').value.trim(),
+      dueDate,
+      account: document.getElementById('newChequeAccount').value,
+      payee: document.getElementById('newChequePayee').value.trim(),
+      note: document.getElementById('newChequeNote').value.trim()
+    });
+    this.closeModal('chequeFormModal');
+    Render.renderChequeList(this.activeChequeTab);
+    this.toast('چک با موفقیت ثبت شد', 'success');
+  },
+
+  cashCheque(id) {
+    if (!confirm('وصول این چک؟ مبلغ به حساب مرتبط افزوده/کسر می‌شود.')) return;
+    Store.updateChequeStatus(id, 'cashed');
+    Render.renderChequeList(this.activeChequeTab);
+    this.toast('چک وصول شد و تراکنش مرتبط ثبت گردید', 'success');
+  },
+
+  bounceCheque(id) {
+    const reason = prompt('دلیل برگشت چک را وارد کنید (اختیاری):');
+    Store.updateChequeStatus(id, 'bounced', { bouncedReason: reason || '' });
+    Render.renderChequeList(this.activeChequeTab);
+    this.toast('چک به‌عنوان برگشتی علامت‌گذاری شد', 'error');
+  },
+
+  deleteCheque(id) {
+    if (!confirm('حذف این چک؟')) return;
+    Store.deleteCheque(id);
+    Render.renderChequeList(this.activeChequeTab);
+    this.toast('چک حذف شد', 'success');
+  },
+
+  // ==================== Loan Management ====================
+  openLoanManager() {
+    document.getElementById('loanManagerModal').classList.remove('translate-x-full');
+    Render.renderLoanList();
+  },
+
+  closeLoanManager() {
+    document.getElementById('loanManagerModal').classList.add('translate-x-full');
+  },
+
+  openLoanForm() {
+    const sel = document.getElementById('newLoanAccount');
+    sel.innerHTML = '';
+    Object.keys(Store.state.accounts).forEach(acc => {
+      const opt = document.createElement('option');
+      opt.value = acc;
+      opt.textContent = acc;
+      sel.appendChild(opt);
+    });
+    const today = JalaliDate.today();
+    document.getElementById('newLoanStartDate').value =
+      `${today[0]}/${String(today[1]).padStart(2,'0')}/${String(today[2]).padStart(2,'0')}`;
+    document.getElementById('loanFormModal').classList.remove('hidden');
+  },
+
+  handleLoanSubmit(e) {
+    e.preventDefault();
+    const principal = parseInt(document.getElementById('newLoanPrincipal').value);
+    if (!principal || principal <= 0) {
+      this.toast('مبلغ وام معتبر وارد کنید', 'error');
+      return;
+    }
+    const termMonths = parseInt(document.getElementById('newLoanTerm').value);
+    if (!termMonths || termMonths < 1) {
+      this.toast('تعداد ماه معتبر وارد کنید', 'error');
+      return;
+    }
+    Store.addLoan({
+      type: document.getElementById('newLoanType').value,
+      counterparty: document.getElementById('newLoanCounterparty').value.trim(),
+      principal,
+      annualInterestRate: parseFloat(document.getElementById('newLoanRate').value || '0'),
+      termMonths,
+      startDate: document.getElementById('newLoanStartDate').value.trim(),
+      account: document.getElementById('newLoanAccount').value,
+      note: document.getElementById('newLoanNote').value.trim()
+    });
+    this.closeModal('loanFormModal');
+    Render.renderLoanList();
+    this.toast('وام با موفقیت ثبت شد و برنامه اقساط ایجاد گردید', 'success');
+  },
+
+  openLoanDetail(id) {
+    Render.renderLoanDetail(id);
+  },
+
+  payInstallment(loanId, installmentId) {
+    if (!confirm('پرداخت این قسط؟ مبلغ از حساب کسر/به حساب افزوده می‌شود.')) return;
+    Store.payInstallment(loanId, installmentId);
+    Render.renderLoanDetail(loanId);
+    Render.renderLoanList();
+    this.toast('قسط پرداخت شد', 'success');
+  },
+
+  deleteLoan(id) {
+    if (!confirm('حذف این وام؟ اصل وام از حساب برگردانده می‌شود.')) return;
+    Store.deleteLoan(id);
+    Render.renderLoanList();
+    this.toast('وام حذف شد', 'success');
+  },
+
+  // ==================== Person Management ====================
+  openPersonManager() {
+    document.getElementById('personManagerModal').classList.remove('translate-x-full');
+    Render.renderPersonList();
+  },
+
+  closePersonManager() {
+    document.getElementById('personManagerModal').classList.add('translate-x-full');
+  },
+
+  openPersonForm() {
+    document.getElementById('personFormModal').classList.remove('hidden');
+    ['newPersonName','newPersonPhone','newPersonNote'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  },
+
+  handlePersonSubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('newPersonName').value.trim();
+    if (!name) {
+      this.toast('نام را وارد کنید', 'error');
+      return;
+    }
+    Store.addPerson({
+      name,
+      phone: document.getElementById('newPersonPhone').value.trim(),
+      relationship: document.getElementById('newPersonRelationship').value,
+      note: document.getElementById('newPersonNote').value.trim()
+    });
+    this.closeModal('personFormModal');
+    Render.renderPersonList();
+    this.toast('شخص اضافه شد', 'success');
+  },
+
+  deletePerson(id) {
+    if (!confirm('حذف این شخص؟ تراکنش‌های مرتبط حذف نمی‌شوند.')) return;
+    Store.deletePerson(id);
+    Render.renderPersonList();
+    this.toast('شخص حذف شد', 'success');
+  },
+
+  // ==================== Custom Range Report ====================
+  openCustomRangeReport() {
+    const today = JalaliDate.today();
+    const todayStr = `${today[0]}/${String(today[1]).padStart(2,'0')}/${String(today[2]).padStart(2,'0')}`;
+    document.getElementById('rangeFromDate').value = todayStr;
+    document.getElementById('rangeToDate').value = todayStr;
+    document.getElementById('customRangeModal').classList.remove('translate-x-full');
+    this.runCustomRangeReport();
+  },
+
+  closeCustomRangeReport() {
+    document.getElementById('customRangeModal').classList.add('translate-x-full');
+  },
+
+  runCustomRangeReport() {
+    const from = document.getElementById('rangeFromDate').value.trim();
+    const to = document.getElementById('rangeToDate').value.trim();
+    if (!/^\d{4}\/\d{2}\/\d{2}$/.test(from) || !/^\d{4}\/\d{2}\/\d{2}$/.test(to)) {
+      this.toast('تاریخ‌ها را به فرمت 1405/01/01 وارد کنید', 'error');
+      return;
+    }
+    if (from > to) {
+      this.toast('تاریخ شروع باید قبل از پایان باشد', 'error');
+      return;
+    }
+    Render.renderCustomRangeReport(from, to);
+  },
+
+  exportCustomRangeCSV() {
+    const from = document.getElementById('rangeFromDate').value.trim();
+    const to = document.getElementById('rangeToDate').value.trim();
+    if (!from || !to) { this.toast('ابتدا بازه را تعیین کنید', 'error'); return; }
+    const txs = Store.getTransactionsInRange(from, to);
+    if (!txs.length) { this.toast('تراکنشی در این بازه نیست', 'error'); return; }
+    // Reuse Exporter but with custom slice — temporarily replace the function
+    const origGetTx = () => Store.state.transactions;
+    Store.state.transactions._customSlice = txs;
+    // Build CSV inline
+    const headers = ['تاریخ','ساعت','نوع','دسته','حساب','مبلغ','یادداشت'];
+    const rows = txs.map(t => [
+      t.date, t.time || '',
+      t.type === 'expense' ? 'هزینه' : t.type === 'income' ? 'درآمد' : t.type === 'transfer' ? 'انتقال' : 'سایر',
+      t.category, t.account, t.amount, t.note || ''
+    ]);
+    let csv = '\uFEFF' + headers.join(',') + '\n';
+    rows.forEach(row => {
+      csv += row.map(c => {
+        const s = String(c || '');
+        return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g,'""')}"` : s;
+      }).join(',') + '\n';
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `zarbin-range-${from}-to-${to}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    this.toast('خروجی CSV ایجاد شد', 'success');
+  },
+
+  exportCustomRangePDF() {
+    const from = document.getElementById('rangeFromDate').value.trim();
+    const to = document.getElementById('rangeToDate').value.trim();
+    if (!from || !to) { this.toast('ابتدا بازه را تعیین کنید', 'error'); return; }
+    const summary = Store.getRangeSummary(from, to);
+    const txs = Store.getTransactionsInRange(from, to);
+    const rows = txs.map(t => `
+      <tr>
+        <td>${Render.formatDate(t.date)} ${Render.formatTime(t.time||'')}</td>
+        <td>${Render.escapeHtml(t.category)}</td>
+        <td>${Render.escapeHtml(t.account)}</td>
+        <td style="text-align:left;color:${t.type==='income'?'#16a34a':t.type==='expense'?'#dc2626':'#d97706'}">${t.type==='income'?'+':t.type==='expense'?'−':''}${Render.formatMoney(t.amount)}</td>
+      </tr>
+    `).join('');
+    const html = `<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>گزارش بازه زرین</title>
+<style>body{font-family:Vazirmatn,Tahoma,sans-serif;padding:30px;color:#1e293b}.header{border-bottom:3px solid #0f3d37;padding-bottom:15px;margin-bottom:20px}.header h1{color:#0f3d37;margin:0;font-size:22px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}.summary .card{background:#f0f5f4;padding:12px;border-radius:8px;border-right:4px solid #0f766e}.summary .label{font-size:11px;color:#64748b}.summary .value{font-size:16px;font-weight:bold;margin-top:4px}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#0f3d37;color:white;padding:10px;text-align:right}td{padding:8px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f8fafc}.footer{margin-top:30px;padding-top:15px;border-top:1px solid #e2e8f0;text-align:center;font-size:10px;color:#94a3b8}@media print{body{padding:0}}</style>
+</head><body>
+<div class="header"><h1>گزارش بازه دلخواه زرین</h1><div style="font-size:12px;color:#64748b;margin-top:5px">از ${Render.formatDate(from)} تا ${Render.formatDate(to)}</div></div>
+<div class="summary">
+  <div class="card"><div class="label">درآمد</div><div class="value" style="color:#16a34a">${Render.formatWithCurrency(summary.income)}</div></div>
+  <div class="card"><div class="label">هزینه</div><div class="value" style="color:#dc2626">${Render.formatWithCurrency(summary.expense)}</div></div>
+  <div class="card"><div class="label">پس‌انداز</div><div class="value" style="color:${summary.savings>=0?'#16a34a':'#dc2626'}">${Render.formatWithCurrency(summary.savings)}</div></div>
+  <div class="card"><div class="label">تعداد</div><div class="value">${Render.toPersian(summary.count)}</div></div>
+</div>
+<table><thead><tr><th>تاریخ</th><th>دسته</th><th>حساب</th><th>مبلغ</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="footer">زرین · Zarbin v${APP_VERSION} — گزارش بازه دلخواه</div>
+<button class="no-print" onclick="window.print()" style="margin-top:20px;padding:10px 20px;background:#0f3d37;color:white;border:none;border-radius:8px;cursor:pointer;font-family:inherit;">چاپ / ذخیره PDF</button>
+</body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { this.toast('اجازه باز شدن پنجره را بدهید', 'error'); return; }
+    w.document.write(html);
+    w.document.close();
+  },
+
+  // ==================== Balance Sheet ====================
+  openBalanceSheet() {
+    document.getElementById('balanceSheetModal').classList.remove('translate-x-full');
+    Render.renderBalanceSheet();
+  },
+
+  closeBalanceSheet() {
+    document.getElementById('balanceSheetModal').classList.add('translate-x-full');
   }
 };
 

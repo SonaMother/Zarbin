@@ -282,3 +282,111 @@ button { transition: transform .1s, background-color .2s, color .2s; }
   body { background: white; }
   #appContainer { box-shadow: none; max-width: none; height: auto; }
 }
+
+/* ============================================
+   PIN Lock Screen & PIN Setup
+   ============================================ */
+.pin-screen {
+  background: linear-gradient(160deg, #0c322c 0%, #0f3d37 100%);
+}
+
+.pin-logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fde047, #d97706);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #0c322c;
+  box-shadow: 0 10px 30px rgba(251, 191, 36, 0.3);
+  border: 4px solid rgba(255, 255, 255, 0.1);
+}
+
+.pin-dots-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 1.5rem 0;
+}
+
+.pin-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  transition: all .2s;
+}
+
+.pin-dot.filled {
+  background: #fbbf24;
+  border-color: #fbbf24;
+  transform: scale(1.1);
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.pin-pad-btn {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'Vazirmatn', sans-serif;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-pad-btn:hover { background: rgba(255, 255, 255, 0.15); }
+.pin-pad-btn:active {
+  background: rgba(251, 191, 36, 0.3);
+  transform: scale(0.92);
+}
+
+.pin-pad-btn.action {
+  background: transparent;
+  border: none;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.pin-pad-btn.action.confirm {
+  color: #fbbf24;
+  font-size: 1.5rem;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-8px); }
+  80% { transform: translateX(8px); }
+}
+.shake { animation: shake .4s ease-in-out; }
+
+/* ============================================
+   Filter Sheet (transaction search)
+   ============================================ */
+.filter-sheet {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .3s ease-out;
+}
+.filter-sheet.open {
+  max-height: 500px;
+}
