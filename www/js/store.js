@@ -3,7 +3,7 @@
    مدیریت حالت و ذخیره‌سازی
    ============================================ */
 
-const APP_VERSION = '1.5.1';
+const APP_VERSION = '1.5.2';
 const APP_BUILD = '20260630';
 const STORAGE_KEY = 'zarbin_state_v1';
 const FIRST_RUN_KEY = 'zarbin_first_run_done';
@@ -70,12 +70,22 @@ function getDemoState() {
       { id: 2, category: 'کرایه', limit: 3000000, period: 'monthly' },
       { id: 3, category: 'اینترنت', limit: 1500000, period: 'monthly' }
     ],
-    smsInbox: [
-      { id: 101, bank: 'بانک شهر', card: '4001003675898', amount: 900000, action: 'برداشت', date: '1405/03/27 19:02:22', targetAccount: 'حساب ۴۰۰۱۰۰', mappedCategory: 'خوراک/کوروش' },
-      { id: 102, bank: 'بانک شهر', card: '4001003675898', amount: 670000, action: 'برداشت', date: '1405/03/27 17:33:29', targetAccount: 'حساب ۴۰۰۱۰۰', mappedCategory: 'اینترنت' },
-      { id: 103, bank: 'بانک شهر', card: '4001003675898', amount: 6289120, action: 'برداشت', date: '1405/03/26 19:31:47', targetAccount: 'حساب ۴۰۰۱۰۰', mappedCategory: 'سایر' },
-      { id: 104, bank: 'بانک ملت', card: '5670330', amount: 8000000, action: 'واریز یارانه', date: '1405/03/26 09:12:00', targetAccount: 'ملت سهروردی', mappedCategory: 'یارانه' }
-    ],
+    smsInbox: (function() {
+      // Generate demo SMS with dates relative to today
+      var t = JalaliDate.today();
+      var todayStr = String(t[0]).padStart(4, '0') + '/' + String(t[1]).padStart(2, '0') + '/' + String(t[2]).padStart(2, '0');
+      // Yesterday
+      var yg = JalaliDate.jalaliToGregorian(t[0], t[1], t[2]);
+      var yd = new Date(yg[0], yg[1] - 1, yg[2] - 1);
+      var yj = JalaliDate.gregorianToJalali(yd.getFullYear(), yd.getMonth() + 1, yd.getDate());
+      var yesterdayStr = String(yj[0]).padStart(4, '0') + '/' + String(yj[1]).padStart(2, '0') + '/' + String(yj[2]).padStart(2, '0');
+      return [
+        { id: 101, bank: 'بانک شهر', card: '4001003675898', amount: 900000, action: 'برداشت', date: todayStr + ' 19:02:22', targetAccount: 'حساب ۴۰۰۱۰۰', mappedCategory: 'خوراک/کوروش' },
+        { id: 102, bank: 'بانک شهر', card: '4001003675898', amount: 670000, action: 'برداشت', date: todayStr + ' 17:33:29', targetAccount: 'حساب ۴۰۰۱۰۰', mappedCategory: 'اینترنت' },
+        { id: 103, bank: 'بانک شهر', card: '4001003675898', amount: 6289120, action: 'برداشت', date: yesterdayStr + ' 19:31:47', targetAccount: 'حساب ۴۰۰۱۰۰', mappedCategory: 'سایر' },
+        { id: 104, bank: 'بانک ملت', card: '5670330', amount: 8000000, action: 'واریز یارانه', date: yesterdayStr + ' 09:12:00', targetAccount: 'ملت سهروردی', mappedCategory: 'یارانه' }
+      ];
+    })(),
     settings: {
       showTodayDate: true,
       autoParseSms: true,

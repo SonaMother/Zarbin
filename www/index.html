@@ -49,7 +49,7 @@
       <!-- App brand (small) + Version Badge -->
       <div class="flex items-center gap-2 px-2">
         <span class="font-bold text-sm tracking-wide">زرین</span>
-        <span class="version-badge">v1.5.1</span>
+        <span class="version-badge">v1.5.2</span>
       </div>
 
       <!-- Account Selector + SMS -->
@@ -629,7 +629,7 @@
             <label class="block text-[11px] text-slate-400 mb-1">مبلغ تراکنش</label>
             <div class="flex items-center border rounded-lg bg-slate-50">
               <span id="formAmountLabel" class="p-2 text-slate-400 border-l font-bold text-teal-800">ریال</span>
-              <input id="formAmount" type="number" required placeholder="0" class="w-full p-2 bg-transparent outline-none text-left font-bold" />
+              <input id="formAmount" type="number" required placeholder="۰" class="w-full p-2 bg-transparent outline-none text-left font-bold" />
             </div>
           </div>
 
@@ -637,7 +637,7 @@
             <label class="block text-[11px] text-slate-400 mb-1">کارمزد بانکی (اختیاری)</label>
             <div class="flex items-center border rounded-lg bg-slate-50">
               <span class="p-2 text-slate-400 border-l">ریال</span>
-              <input id="formFee" type="number" placeholder="0" class="w-full p-2 bg-transparent outline-none text-left" />
+              <input id="formFee" type="number" placeholder="۰" class="w-full p-2 bg-transparent outline-none text-left" />
             </div>
           </div>
 
@@ -798,7 +798,7 @@
         <!-- Build info -->
         <div class="bg-slate-50 rounded-lg p-3 text-center text-[10px] text-slate-400">
           <div class="font-bold text-slate-500">زرین · Zarbin</div>
-          <div class="mt-1">نسخه <span class="version-badge inline-block">v1.5.1</span></div>
+          <div class="mt-1">نسخه <span class="version-badge inline-block">v1.5.2</span></div>
           <div class="build-number mt-1">Build 20260630</div>
           <div class="mt-2 text-[9px]">© ۲۰۲۶ SonaMother · GitHub</div>
         </div>
@@ -994,7 +994,7 @@
             <label class="block text-[11px] text-slate-400 mb-1">موجودی اولیه (اختیاری)</label>
             <div class="flex items-center border rounded-lg bg-slate-50">
               <span class="p-2 text-slate-400 border-l">ریال</span>
-              <input id="newAccountInitialBalance" type="number" placeholder="0" class="w-full p-2 bg-transparent outline-none text-left">
+              <input id="newAccountInitialBalance" type="number" placeholder="۰" class="w-full p-2 bg-transparent outline-none text-left">
             </div>
           </div>
           <div>
@@ -1057,7 +1057,7 @@
           </p>
           <div class="border-t pt-2 space-y-1 text-slate-500 text-[11px]">
             <div><span class="font-bold">ارائه‌دهنده:</span> SonaMother</div>
-            <div><span class="font-bold">نسخه:</span> <span class="version-badge inline-block">v1.5.1</span> <span class="build-number mr-2 text-slate-400">Build 20260630</span></div>
+            <div><span class="font-bold">نسخه:</span> <span class="version-badge inline-block">v1.5.2</span> <span class="build-number mr-2 text-slate-400">Build 20260630</span></div>
             <div><span class="font-bold">مخزن:</span> github.com/SonaMother/Zarbin</div>
             <div><span class="font-bold">پلتفرم:</span> Android (APK) · وب · PWA</div>
           </div>
@@ -1154,7 +1154,7 @@
           </div>
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">مبلغ</label>
-            <input id="recAmount" type="number" required placeholder="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
+            <input id="recAmount" type="number" required placeholder="۰" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
           </div>
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">حساب</label>
@@ -1253,7 +1253,7 @@
           </div>
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">مبلغ (ریال)</label>
-            <input id="newChequeAmount" type="number" required placeholder="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
+            <input id="newChequeAmount" type="number" required placeholder="۰" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
@@ -1321,16 +1321,16 @@
           </div>
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">مبلغ اصل وام (ریال)</label>
-            <input id="newLoanPrincipal" type="number" required placeholder="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
+            <input id="newLoanPrincipal" type="number" required placeholder="۰" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left font-bold">
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-[11px] text-slate-400 mb-1">نرخ سود سالانه (٪)</label>
-              <input id="newLoanRate" type="number" step="0.1" placeholder="0" value="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
+              <input id="newLoanRate" type="number" step="0.1" placeholder="۰" value="0" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
             </div>
             <div>
               <label class="block text-[11px] text-slate-400 mb-1">تعداد ماه</label>
-              <input id="newLoanTerm" type="number" required placeholder="12" value="12" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
+              <input id="newLoanTerm" type="number" required placeholder="۱۲" value="12" class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
             </div>
           </div>
           <div>
@@ -1389,7 +1389,7 @@
           </div>
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">تلفن (اختیاری)</label>
-            <input id="newPersonPhone" type="tel" placeholder="0912..." class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
+            <input id="newPersonPhone" type="tel" placeholder="۰۹۱۲..." class="w-full p-2.5 border rounded-lg bg-slate-50 outline-none text-left">
           </div>
           <div>
             <label class="block text-[11px] text-slate-400 mb-1">نسبت</label>
@@ -1536,7 +1536,7 @@
 
       <button class="pin-pad-btn action mt-4" onclick="App.pressPinBackspace()"><i class="fa-solid fa-delete-left"></i> حذف</button>
 
-      <p class="text-[9px] text-teal-300/40 mt-6">نسخه <span class="version-badge inline-block">v1.5.1</span></p>
+      <p class="text-[9px] text-teal-300/40 mt-6">نسخه <span class="version-badge inline-block">v1.5.2</span></p>
     </div>
 
     <!-- ===================== PIN SETUP MODAL ===================== -->
@@ -1633,7 +1633,7 @@
       </p>
 
       <div class="mt-3 text-[9px] text-teal-300/30">
-        نسخه <span class="version-badge inline-block">v1.5.1</span> · Build <span class="build-number">20260630</span>
+        نسخه <span class="version-badge inline-block">v1.5.2</span> · Build <span class="build-number">20260630</span>
       </div>
     </div>
 

@@ -1398,11 +1398,10 @@ const App = {
   // (called from handleFormSubmit after Store.addTransaction)
   maybeCreateRecurringFromForm(txData) {
     if (this.recurringFormState.enabled) {
-      Store.addRecurringTransaction({
-        ...txData,
+      Store.addRecurringTransaction(Object.assign({}, txData, {
         frequency: this.recurringFormState.frequency,
         date: Store.state.selectedDate
-      });
+      }));
     }
     // Reset state for next time
     this.recurringFormState = { enabled: false, frequency: 'monthly' };
