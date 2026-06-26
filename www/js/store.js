@@ -3,7 +3,7 @@
    مدیریت حالت و ذخیره‌سازی
    ============================================ */
 
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.4.2';
 const APP_BUILD = '20260630';
 const STORAGE_KEY = 'zarbin_state_v1';
 const FIRST_RUN_KEY = 'zarbin_first_run_done';
@@ -229,12 +229,9 @@ const Store = {
 
   // Transaction operations
   addTransaction(tx) {
-    // Use crypto.randomUUID when available (browsers + Android WebView 7+),
-    // otherwise fall back to a high-entropy string. Avoids the
-    // Date.now()+random(1000) collisions that happened under fast clicking.
-    tx.id = (crypto && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+    // Generate a unique ID without relying on crypto.randomUUID (which
+    // requires Android WebView 95+). This approach works on all versions.
+    tx.id = 'tx_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
     tx.date = tx.date || (() => {
       const t = JalaliDate.today();
       return `${String(t[0]).padStart(4, '0')}/${String(t[1]).padStart(2, '0')}/${String(t[2]).padStart(2, '0')}`;

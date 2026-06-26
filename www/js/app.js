@@ -240,7 +240,7 @@ const App = {
     const acc = document.getElementById('formSourceAccount').value;
     const note = document.getElementById('formNote').value;
     const fee = parseInt(document.getElementById('formFee').value || '0');
-    const destAcc = document.getElementById('formDestAccount')?.value;
+    const destAcc =  (document.getElementById('formDestAccount') ? document.getElementById('formDestAccount').value : '');
 
     // Use explicit type set by openTransactionForm, not title parsing
     const typeKey = this.currentFormType;
@@ -435,7 +435,7 @@ const App = {
     const name = document.getElementById('newAccountName').value;
     const initial = parseInt(document.getElementById('newAccountInitialBalance').value || '0');
     const iban = document.getElementById('newAccountIban').value;
-    const type = document.querySelector('input[name="newAccountType"]:checked')?.value || 'bank';
+    const type =  (document.querySelector('input[name="newAccountType"]:checked') ? document.querySelector('input[name="newAccountType"]:checked').value : 'bank') || 'bank';
 
     const fullName = type === 'cash' ? `کیف پول ${name}` : `حساب ${bank} - ${name}`;
     Store.addAccount(fullName, bank, type, initial, iban);
@@ -1034,8 +1034,8 @@ const App = {
   },
 
   applyAmountFilter() {
-    const min = document.getElementById('filterAmountMin')?.value;
-    const max = document.getElementById('filterAmountMax')?.value;
+    const min =  (document.getElementById('filterAmountMin') ? document.getElementById('filterAmountMin').value : '');
+    const max =  (document.getElementById('filterAmountMax') ? document.getElementById('filterAmountMax').value : '');
     this.txFilters.amountMin = min ? parseInt(min) : null;
     this.txFilters.amountMax = max ? parseInt(max) : null;
     this.updateFilterBadge();
@@ -1184,7 +1184,7 @@ const App = {
     const name = document.getElementById('newCatName').value.trim();
     const type = document.getElementById('newCatType').value;
     const icon = document.getElementById('newCatIcon').value.trim() || 'fa-tag';
-    const color = document.querySelector('input[name="catColor"]:checked')?.value || '#0f766e';
+    const color =  (document.querySelector('input[name="catColor"]:checked') ? document.querySelector('input[name="catColor"]:checked').value : '#0f766e') || '#0f766e';
     if (!name) {
       this.toast('نام دسته را وارد کنید', 'error');
       return;

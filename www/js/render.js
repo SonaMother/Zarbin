@@ -571,8 +571,8 @@ const Render = {
 
     let html = '';
     // Cash accounts first
-    const cashAccounts = Object.keys(state.accounts).filter(a => state.accountMeta[a]?.type === 'cash');
-    const bankAccounts = Object.keys(state.accounts).filter(a => state.accountMeta[a]?.type !== 'cash');
+    const cashAccounts = Object.keys(state.accounts).filter(a =>  (state.accountMeta[a] ? state.accountMeta[a].type : '') === 'cash');
+    const bankAccounts = Object.keys(state.accounts).filter(a =>  (state.accountMeta[a] ? state.accountMeta[a].type : '') !== 'cash');
 
     if (cashAccounts.length) {
       html += `<span class="text-[10px] font-black tracking-wider text-slate-400 block uppercase mb-2">کیف پول / صندوق</span>`;
@@ -1107,7 +1107,7 @@ const Render = {
           <div class="grid grid-cols-3 gap-1 text-[10px] text-slate-500 mb-2">
             <div>مدت: <b>${this.toPersian(l.termMonths)} ماه</b></div>
             <div>سود: <b>${this.toPersian(l.annualInterestRate)}٪</b></div>
-            <div>قسط: <b>${this.formatMoney(l.installments[0]?.amount || 0)}</b></div>
+            <div>قسط: <b>${this.formatMoney( (l.installments[0] ? l.installments[0].amount : 0) || 0)}</b></div>
           </div>
           <div class="flex justify-between text-[10px] mb-1">
             <span class="text-slate-500">پرداخت شده: ${this.toPersian(paid)}/${this.toPersian(total)}</span>

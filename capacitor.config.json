@@ -3,19 +3,19 @@
   "appName": "زرین · Zarbin",
   "webDir": "www",
   "server": {
-    "androidScheme": "https",
-    "url": null
+    "androidScheme": "https"
   },
   "android": {
-    "allowMixedContent": false,
-    "webContentsDebuggingEnabled": false,
+    "allowMixedContent": true,
+    "webContentsDebuggingEnabled": true,
     "backgroundColor": "#0c322c"
   },
   "plugins": {
     "SplashScreen": {
-      "launchShowDuration": 800,
+      "launchShowDuration": 500,
       "backgroundColor": "#0c322c",
-      "showSpinner": false
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
     }
   }
 }
