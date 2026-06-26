@@ -6,7 +6,10 @@
 const App = {
   init() {
     Store.init();
-    this.applyFontScale(Store.state.fontScale);
+    // Apply font scale WITHOUT saving (Store.init may have just loaded a
+    // placeholder state for first-run; saving it would prevent the
+    // onboarding modal from showing on subsequent loads).
+    this._applyFontScaleNoSave(Store.state.fontScale);
     this.applyDarkMode();
     this.updateVersionDisplay();
     this.bindEvents();
@@ -23,6 +26,17 @@ const App = {
       Render.renderDashboard();
     }
     this.updateSmsBadge();
+  },
+
+  // Internal: apply font scale to DOM without persisting to localStorage.
+  // Used during init() to avoid clobbering first-run state.
+  _applyFontScaleNoSave(scaleVal) {
+    const input = document.getElementById('fontRangeInput');
+    const label = document.getElementById('fontScaleLabel');
+    const container = document.getElementById('appContainer');
+    if (input) input.value = scaleVal;
+    if (label) label.innerText = `${Render.toPersian(scaleVal)}٪`;
+    if (container) container.style.fontSize = `${scaleVal}%`;
   },
 
   // ==================== Onboarding (Demo vs Clean) ====================
@@ -912,10 +926,13 @@ const App = {
     }
 
     // Periodic save (in case of background kill) + auto-lock
+    // On background: just save. On foreground: check if we should auto-lock.
+    // Note: we do NOT call touchActivity on background — that would reset the
+    // inactivity timer and prevent auto-lock from ever firing after a real
+    // period of inactivity. The last touch from the user stays as the reference.
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         Store.save();
-        Security.touchActivity();
       } else {
         // App became visible again — check if we should lock
         if (Security.isPinEnabled() && Security.isLocked()) {
@@ -924,7 +941,8 @@ const App = {
       }
     });
 
-    // Touch activity on user interaction (only when unlocked)
+    // Touch activity on user interaction (only when unlocked).
+    // This updates lastActiveAt so the auto-lock timer resets on every tap.
     ['click', 'touchstart'].forEach(evt => {
       document.addEventListener(evt, () => {
         if (!Security.isLocked()) Security.touchActivity();

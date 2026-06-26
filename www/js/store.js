@@ -3,7 +3,7 @@
    مدیریت حالت و ذخیره‌سازی
    ============================================ */
 
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const APP_BUILD = '20260630';
 const STORAGE_KEY = 'zarbin_state_v1';
 const FIRST_RUN_KEY = 'zarbin_first_run_done';
@@ -507,19 +507,46 @@ const Store = {
   },
 
   _advanceDate(dateStr, frequency) {
+    // Parse Jalali date
     const parts = dateStr.split('/').map(p => parseInt(p));
-    const [jy, jm, jd] = parts;
-    const [gy, gm, gd] = JalaliDate.jalaliToGregorian(jy, jm, jd);
-    const d = new Date(gy, gm - 1, gd);
+    let [jy, jm, jd] = parts;
     switch (frequency) {
-      case 'daily': d.setDate(d.getDate() + 1); break;
-      case 'weekly': d.setDate(d.getDate() + 7); break;
-      case 'monthly': d.setMonth(d.getMonth() + 1); break;
-      case 'yearly': d.setFullYear(d.getFullYear() + 1); break;
-      default: d.setMonth(d.getMonth() + 1);
+      case 'daily':
+        jd++;
+        if (jd > JalaliDate.daysInMonth(jy, jm)) {
+          jd = 1; jm++;
+          if (jm > 12) { jm = 1; jy++; }
+        }
+        break;
+      case 'weekly':
+        // Add 7 days, handling month/year boundaries
+        for (let i = 0; i < 7; i++) {
+          jd++;
+          if (jd > JalaliDate.daysInMonth(jy, jm)) {
+            jd = 1; jm++;
+            if (jm > 12) { jm = 1; jy++; }
+          }
+        }
+        break;
+      case 'monthly':
+        jm++;
+        if (jm > 12) { jm = 1; jy++; }
+        // Clamp day if new month is shorter (e.g. 31 → 30 for months 7-12)
+        const maxDay = JalaliDate.daysInMonth(jy, jm);
+        if (jd > maxDay) jd = maxDay;
+        break;
+      case 'yearly':
+        jy++;
+        // Handle leap-year Esfand: if was 30 and new year isn't leap, clamp to 29
+        if (jm === 12 && jd === 30 && !JalaliDate.isLeap(jy)) {
+          jd = 29;
+        }
+        break;
+      default:
+        jm++;
+        if (jm > 12) { jm = 1; jy++; }
     }
-    const [njy, njm, njd] = JalaliDate.gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
-    return `${String(njy).padStart(4, '0')}/${String(njm).padStart(2, '0')}/${String(njd).padStart(2, '0')}`;
+    return `${String(jy).padStart(4, '0')}/${String(jm).padStart(2, '0')}/${String(jd).padStart(2, '0')}`;
   },
 
   // ==================== Yearly Reports / Savings ====================
@@ -675,10 +702,12 @@ const Store = {
     for (let i = 1; i <= n; i++) {
       const interestPart = remainingPrincipal * r;
       const principalPart = installmentAmount - interestPart;
-      // Advance month (Jalali)
+      // Advance month (Jalali) with proper day clamping for shorter months
       jm++;
       if (jm > 12) { jm = 1; jy++; }
-      const dueDate = `${jy}/${String(jm).padStart(2, '0')}/${String(jd).padStart(2, '0')}`;
+      const maxDay = JalaliDate.daysInMonth(jy, jm);
+      const actualDay = Math.min(jd, maxDay);
+      const dueDate = `${jy}/${String(jm).padStart(2, '0')}/${String(actualDay).padStart(2, '0')}`;
       schedule.push({
         id: `${loan.id}_inst_${i}`,
         number: i,
