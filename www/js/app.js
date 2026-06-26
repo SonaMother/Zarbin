@@ -32,12 +32,16 @@ const App = {
   // Internal: apply font scale to DOM without persisting to localStorage.
   // Used during init() to avoid clobbering first-run state.
   _applyFontScaleNoSave(scaleVal) {
-    const input = document.getElementById('fontRangeInput');
-    const label = document.getElementById('fontScaleLabel');
-    const container = document.getElementById('appContainer');
+    // Set the CSS variable --font-scale on the app container.
+    // CSS uses calc(px * var(--font-scale)) to scale ALL text sizes
+    // including Tailwind's text-xs, text-[11px], etc.
+    var scale = parseFloat(scaleVal) / 100;
+    var input = document.getElementById('fontRangeInput');
+    var label = document.getElementById('fontScaleLabel');
+    var container = document.getElementById('appContainer');
     if (input) input.value = scaleVal;
-    if (label) label.innerText = `${Render.toPersian(scaleVal)}٪`;
-    if (container) container.style.fontSize = `${scaleVal}%`;
+    if (label) label.innerText = Render.toPersian(scaleVal) + '٪';
+    if (container) container.style.setProperty('--font-scale', scale);
   },
 
   // ==================== Onboarding (Demo vs Clean) ====================
@@ -503,9 +507,13 @@ const App = {
 
   applyFontScale(scaleVal) {
     Store.setFontScale(scaleVal);
-    document.getElementById('fontRangeInput').value = scaleVal;
-    document.getElementById('fontScaleLabel').innerText = `${Render.toPersian(scaleVal)}٪`;
-    document.getElementById('appContainer').style.fontSize = `${scaleVal}%`;
+    var scale = parseFloat(scaleVal) / 100;
+    var input = document.getElementById('fontRangeInput');
+    var label = document.getElementById('fontScaleLabel');
+    var container = document.getElementById('appContainer');
+    if (input) input.value = scaleVal;
+    if (label) label.innerText = Render.toPersian(scaleVal) + '٪';
+    if (container) container.style.setProperty('--font-scale', scale);
   },
 
   openCurrencySettings() {
@@ -542,8 +550,30 @@ const App = {
 
   // ==================== Date Picker ====================
   openDatePicker() {
-    const modal = document.getElementById('datePickerModal');
+    var modal = document.getElementById('datePickerModal');
     modal.classList.remove('hidden');
+    this._datePickerTarget = 'transaction';
+    this.renderCalendarGrid();
+  },
+
+  // Reusable date picker — opens calendar, writes selected date to the
+  // specified hidden input and updates its display label.
+  openDatePickerFor(inputId) {
+    var modal = document.getElementById('datePickerModal');
+    modal.classList.remove('hidden');
+    this._datePickerTarget = inputId;
+    // Read current value from the hidden input and set as selectedDate
+    var input = document.getElementById(inputId);
+    if (input && input.value) {
+      var parts = input.value.split('/');
+      if (parts.length === 3) {
+        Store.state.selectedDate = input.value;
+        Store.state.selectedMonth = {
+          jy: parseInt(parts[0]),
+          jm: parseInt(parts[1])
+        };
+      }
+    }
     this.renderCalendarGrid();
   },
 
@@ -596,8 +626,29 @@ const App = {
   },
 
   selectDayFromCalendar(dateStr) {
-    this.selectDay(dateStr);
+    var target = this._datePickerTarget || 'transaction';
     this.closeModal('datePickerModal');
+
+    if (target === 'transaction') {
+      this.selectDay(dateStr);
+      // Update the transaction form's date label
+      var parts = dateStr.split('/');
+      var label = document.getElementById('formDateLabel');
+      if (label) {
+        label.innerText = JALALI_MONTHS[parseInt(parts[1]) - 1] + ' ' +
+          Render.toPersian(parseInt(parts[2])) + ', ' + Render.toPersian(parts[0]);
+      }
+    } else {
+      // Generic date picker — update hidden input + display label
+      var input = document.getElementById(target);
+      if (input) input.value = dateStr;
+      var labelEl = document.getElementById(target + 'Label');
+      if (labelEl) {
+        // Convert to Persian digits for display
+        labelEl.innerText = Render.toPersian(dateStr);
+      }
+    }
+    this._datePickerTarget = null;
   },
 
   changeCalendarMonth(delta) {
@@ -1497,19 +1548,21 @@ const App = {
 
   openChequeForm() {
     // Populate account dropdown
-    const sel = document.getElementById('newChequeAccount');
+    var sel = document.getElementById('newChequeAccount');
     sel.innerHTML = '';
-    Object.keys(Store.state.accounts).forEach(acc => {
-      const opt = document.createElement('option');
+    Object.keys(Store.state.accounts).forEach(function(acc) {
+      var opt = document.createElement('option');
       opt.value = acc;
       opt.textContent = acc;
       sel.appendChild(opt);
     });
-    // Set today's date as default issue date
-    const today = JalaliDate.today();
-    const todayStr = `${today[0]}/${String(today[1]).padStart(2,'0')}/${String(today[2]).padStart(2,'0')}`;
+    // Set today's date as default
+    var today = JalaliDate.today();
+    var todayStr = today[0] + '/' + String(today[1]).padStart(2,'0') + '/' + String(today[2]).padStart(2,'0');
     document.getElementById('newChequeIssueDate').value = todayStr;
     document.getElementById('newChequeDueDate').value = todayStr;
+    document.getElementById('newChequeIssueDateLabel').innerText = Render.toPersian(todayStr);
+    document.getElementById('newChequeDueDateLabel').innerText = Render.toPersian(todayStr);
     document.getElementById('chequeFormModal').classList.remove('hidden');
   },
 
@@ -1574,17 +1627,18 @@ const App = {
   },
 
   openLoanForm() {
-    const sel = document.getElementById('newLoanAccount');
+    var sel = document.getElementById('newLoanAccount');
     sel.innerHTML = '';
-    Object.keys(Store.state.accounts).forEach(acc => {
-      const opt = document.createElement('option');
+    Object.keys(Store.state.accounts).forEach(function(acc) {
+      var opt = document.createElement('option');
       opt.value = acc;
       opt.textContent = acc;
       sel.appendChild(opt);
     });
-    const today = JalaliDate.today();
-    document.getElementById('newLoanStartDate').value =
-      `${today[0]}/${String(today[1]).padStart(2,'0')}/${String(today[2]).padStart(2,'0')}`;
+    var today = JalaliDate.today();
+    var todayStr = today[0] + '/' + String(today[1]).padStart(2,'0') + '/' + String(today[2]).padStart(2,'0');
+    document.getElementById('newLoanStartDate').value = todayStr;
+    document.getElementById('newLoanStartDateLabel').innerText = Render.toPersian(todayStr);
     document.getElementById('loanFormModal').classList.remove('hidden');
   },
 
@@ -1679,10 +1733,12 @@ const App = {
 
   // ==================== Custom Range Report ====================
   openCustomRangeReport() {
-    const today = JalaliDate.today();
-    const todayStr = `${today[0]}/${String(today[1]).padStart(2,'0')}/${String(today[2]).padStart(2,'0')}`;
+    var today = JalaliDate.today();
+    var todayStr = today[0] + '/' + String(today[1]).padStart(2,'0') + '/' + String(today[2]).padStart(2,'0');
     document.getElementById('rangeFromDate').value = todayStr;
     document.getElementById('rangeToDate').value = todayStr;
+    document.getElementById('rangeFromDateLabel').innerText = Render.toPersian(todayStr);
+    document.getElementById('rangeToDateLabel').innerText = Render.toPersian(todayStr);
     document.getElementById('customRangeModal').classList.remove('translate-x-full');
     this.runCustomRangeReport();
   },

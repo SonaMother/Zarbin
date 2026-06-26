@@ -3,7 +3,7 @@
    مدیریت حالت و ذخیره‌سازی
    ============================================ */
 
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.5.1';
 const APP_BUILD = '20260630';
 const STORAGE_KEY = 'zarbin_state_v1';
 const FIRST_RUN_KEY = 'zarbin_first_run_done';

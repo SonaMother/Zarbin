@@ -41,11 +41,32 @@
   --app-income: #388e3c;
   --app-other: #f57c00;
   --app-accent: #14b8a6;
+  /* Font scale factor — multiply all text sizes by this.
+     Changed by the font size slider in Settings. */
+  --font-scale: 1.0;
 }
 
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Override ALL Tailwind text size classes with calc() using --font-scale.
+   This makes the font size slider actually change the text size, not just
+   line spacing. Tailwind sets absolute px sizes (e.g. text-xs = 12px) which
+   override inheritance. We override them back with !important + calc(). */
+#appContainer {
+  font-size: calc(14px * var(--font-scale));
+}
+#appContainer .text-xs { font-size: calc(12px * var(--font-scale)) !important; }
+#appContainer .text-sm { font-size: calc(14px * var(--font-scale)) !important; }
+#appContainer .text-base { font-size: calc(16px * var(--font-scale)) !important; }
+#appContainer .text-lg { font-size: calc(18px * var(--font-scale)) !important; }
+#appContainer .text-xl { font-size: calc(20px * var(--font-scale)) !important; }
+#appContainer .text-2xl { font-size: calc(24px * var(--font-scale)) !important; }
+#appContainer .text-\[9px\] { font-size: calc(9px * var(--font-scale)) !important; }
+#appContainer .text-\[10px\] { font-size: calc(10px * var(--font-scale)) !important; }
+#appContainer .text-\[11px\] { font-size: calc(11px * var(--font-scale)) !important; }
+#appContainer .text-\[8px\] { font-size: calc(8px * var(--font-scale)) !important; }
 
 html, body {
   font-family: 'Vazirmatn', sans-serif;
