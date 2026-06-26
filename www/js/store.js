@@ -3,7 +3,7 @@
    مدیریت حالت و ذخیره‌سازی
    ============================================ */
 
-const APP_VERSION = '1.4.2';
+const APP_VERSION = '1.5.0';
 const APP_BUILD = '20260630';
 const STORAGE_KEY = 'zarbin_state_v1';
 const FIRST_RUN_KEY = 'zarbin_first_run_done';
@@ -94,6 +94,7 @@ function getDemoState() {
     cheques: [],
     loans: [],
     persons: [],
+    projects: [],
     currencies: [
       { code: 'IRR', symbol: 'ریال', name: 'ریال ایران', rateToBase: 1, isBase: true }
     ]
@@ -154,6 +155,7 @@ function getCleanState() {
     cheques: [],
     loans: [],
     persons: [],
+    projects: [],
     currencies: [
       { code: 'IRR', symbol: 'ریال', name: 'ریال ایران', rateToBase: 1, isBase: true }
     ]
@@ -798,6 +800,22 @@ const Store = {
         if (t.type === 'income') return balance - t.amount; // person paid back
         return balance;
       }, 0);
+  },
+
+  // ==================== Projects ====================
+  addProject(project) {
+    project.id = 'prj_' + Date.now() + Math.floor(Math.random() * 1000);
+    project.createdAt = new Date().toISOString();
+    if (!this.state.projects) this.state.projects = [];
+    this.state.projects.unshift(project);
+    this.save();
+    return project;
+  },
+
+  deleteProject(id) {
+    if (!this.state.projects) return;
+    this.state.projects = this.state.projects.filter(p => p.id !== id);
+    this.save();
   },
 
   // Get monthly summary for a year (12 entries)

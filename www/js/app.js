@@ -26,6 +26,7 @@ const App = {
       Render.renderDashboard();
     }
     this.updateSmsBadge();
+    this.updateDemoModeToggle();
   },
 
   // Internal: apply font scale to DOM without persisting to localStorage.
@@ -180,6 +181,7 @@ const App = {
     // Ensure dropdown reflects current accounts
     this.populateSourceAccounts();
     this.populateDestAccounts();
+    this.populatePersonProjectDropdowns();
 
     const subpage = document.getElementById('formSubpage');
     const title = document.getElementById('formTitle');
@@ -241,6 +243,8 @@ const App = {
     const note = document.getElementById('formNote').value;
     const fee = parseInt(document.getElementById('formFee').value || '0');
     const destAcc =  (document.getElementById('formDestAccount') ? document.getElementById('formDestAccount').value : '');
+    const personId = (document.getElementById('formPerson') && document.getElementById('formPerson').value && document.getElementById('formPerson').value !== '__add_new__') ? document.getElementById('formPerson').value : '';
+    const projectId = (document.getElementById('formProject') && document.getElementById('formProject').value && document.getElementById('formProject').value !== '__add_new__') ? document.getElementById('formProject').value : '';
 
     // Use explicit type set by openTransactionForm, not title parsing
     const typeKey = this.currentFormType;
@@ -278,6 +282,8 @@ const App = {
     };
     if (type === 'other') tx.unsettled = true;
     if (type === 'transfer' && destAcc) tx.destAccount = destAcc;
+    if (personId) tx.personId = personId;
+    if (projectId) tx.projectId = projectId;
 
     Store.addTransaction(tx);
 
@@ -776,17 +782,40 @@ const App = {
     }
   },
 
+  toggleDemoMode() {
+    // Determine current mode: if we have demo data (5 accounts, 6+ txs), we're in demo
+    var isDemo = Object.keys(Store.state.accounts).length > 1 || Store.state.transactions.length > 0;
+    var msg = isDemo
+      ? 'تغییر به حالت تمیز: تمام داده‌های فعلی حذف می‌شود و اپلیکیشن برای استفاده واقعی آماده می‌شود. ادامه؟'
+      : 'تغییر به حالت دمو: داده‌های نمونه بارگذاری می‌شود. ادامه؟';
+    if (!confirm(msg)) return;
+    this.toggleSidebar(false);
+    if (isDemo) {
+      Store.reset('clean');
+    } else {
+      Store.reset('demo');
+    }
+    this.toast('حالت تغییر یافت. اپلیکیشن مجدداً بارگذاری می‌شود...', 'success');
+    setTimeout(function() { location.reload(); }, 800);
+  },
+
+  updateDemoModeToggle() {
+    var isDemo = Object.keys(Store.state.accounts).length > 1 || Store.state.transactions.length > 0;
+    var toggle = document.getElementById('demoModeToggle');
+    if (toggle) {
+      toggle.classList.toggle('active', isDemo);
+    }
+  },
+
   togglePinLock() {
     if (Security.isPinEnabled()) {
-      // Disable
       if (confirm('غیرفعال‌سازی قفل PIN؟ داده‌های شما باقی می‌ماند اما قفل غیرفعال می‌شود.')) {
         Security.disablePin();
-        const toggle = document.getElementById('pinLockToggle');
+        var toggle = document.getElementById('pinLockToggle');
         if (toggle) toggle.classList.remove('active');
         this.toast('قفل PIN غیرفعال شد', 'success');
       }
     } else {
-      // Begin setup
       this.openPinSetup();
     }
   },
@@ -823,11 +852,11 @@ const App = {
 
   // ==================== Source Account Dropdown ====================
   populateSourceAccounts() {
-    const sel = document.getElementById('formSourceAccount');
+    var sel = document.getElementById('formSourceAccount');
     if (!sel) return;
     sel.innerHTML = '';
-    Object.keys(Store.state.accounts).forEach(acc => {
-      const opt = document.createElement('option');
+    Object.keys(Store.state.accounts).forEach(function(acc) {
+      var opt = document.createElement('option');
       opt.value = acc;
       opt.textContent = acc;
       sel.appendChild(opt);
@@ -836,19 +865,80 @@ const App = {
   },
 
   populateDestAccounts() {
-    const sel = document.getElementById('formDestAccount');
+    var sel = document.getElementById('formDestAccount');
     if (!sel) return;
     sel.innerHTML = '';
-    Object.keys(Store.state.accounts).forEach(acc => {
-      const opt = document.createElement('option');
+    Object.keys(Store.state.accounts).forEach(function(acc) {
+      var opt = document.createElement('option');
       opt.value = acc;
       opt.textContent = acc;
       sel.appendChild(opt);
     });
-    // Default to a different account than source
-    const sourceAcc = Store.state.activeAccount;
-    const others = Object.keys(Store.state.accounts).filter(a => a !== sourceAcc);
+    var sourceAcc = Store.state.activeAccount;
+    var others = Object.keys(Store.state.accounts).filter(function(a) { return a !== sourceAcc; });
     if (others.length) sel.value = others[0];
+  },
+
+  populatePersonProjectDropdowns() {
+    // Persons
+    var personSel = document.getElementById('formPerson');
+    if (personSel) {
+      personSel.innerHTML = '<option value="">— هیچ‌کس —</option>';
+      (Store.state.persons || []).forEach(function(p) {
+        var opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        personSel.appendChild(opt);
+      });
+      // Add "add new" option
+      var addOpt = document.createElement('option');
+      addOpt.value = '__add_new__';
+      addOpt.textContent = '＋ افزودن شخص جدید...';
+      personSel.appendChild(addOpt);
+    }
+    // Projects
+    var projSel = document.getElementById('formProject');
+    if (projSel) {
+      projSel.innerHTML = '<option value="">— بدون پروژه —</option>';
+      (Store.state.projects || []).forEach(function(pr) {
+        var opt = document.createElement('option');
+        opt.value = pr.id;
+        opt.textContent = pr.name;
+        projSel.appendChild(opt);
+      });
+      var addProjOpt = document.createElement('option');
+      addProjOpt.value = '__add_new__';
+      addProjOpt.textContent = '＋ افزودن پروژه جدید...';
+      projSel.appendChild(addProjOpt);
+    }
+  },
+
+  onFormPersonChange(value) {
+    if (value === '__add_new__') {
+      var name = prompt('نام شخص جدید را وارد کنید:');
+      if (name && name.trim()) {
+        var p = Store.addPerson({ name: name.trim(), phone: '', relationship: 'other', note: '' });
+        this.populatePersonProjectDropdowns();
+        document.getElementById('formPerson').value = p.id;
+        this.toast('شخص اضافه شد: ' + name.trim(), 'success');
+      } else {
+        document.getElementById('formPerson').value = '';
+      }
+    }
+  },
+
+  onFormProjectChange(value) {
+    if (value === '__add_new__') {
+      var name = prompt('نام پروژه جدید را وارد کنید:');
+      if (name && name.trim()) {
+        var pr = Store.addProject({ name: name.trim(), note: '' });
+        this.populatePersonProjectDropdowns();
+        document.getElementById('formProject').value = pr.id;
+        this.toast('پروژه اضافه شد: ' + name.trim(), 'success');
+      } else {
+        document.getElementById('formProject').value = '';
+      }
+    }
   },
 
   // ==================== Transaction Details ====================

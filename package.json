@@ -1,6 +1,6 @@
 {
   "name": "zarbin",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "Zarbin (زرین) - Persian personal finance accountant app. Cross-platform web app packaged as Android APK via Capacitor.",
   "main": "index.js",
   "scripts": {
